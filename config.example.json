@@ -1,0 +1,70 @@
+{
+  "host": "127.0.0.1",
+  "port": 8765,
+  "apiKey": "",
+  "pairingCode": "",
+  "pairingCodes": [],
+  "agentName": "Home Agent",
+  "dataDir": "./data",
+  "relay": {
+    "urls": ["https://push.qiuyu.org", "https://push1.qiuyu.org"]
+  },
+  "monitor": {
+    "pollIntervalSeconds": 30,
+    "inactiveDownloadNoticeEnabled": true,
+    "inactiveDownloadNoticeSeconds": 1800
+  },
+  "updateCheck": {
+    "enabled": true,
+    "repositoryURL": "https://github.com/iansiu/PushAgent",
+    "url": "https://raw.githubusercontent.com/iansiu/PushAgent/main/package.json",
+    "intervalSeconds": 3600,
+    "timeoutSeconds": 4
+  },
+  "servers": [
+    {
+      "name": "qBittorrent",
+      "type": "qbit",
+      "enabled": false,
+      "baseUrl": "http://127.0.0.1:8081",
+      "username": "",
+      "password": ""
+    },
+    {
+      "name": "Transmission",
+      "type": "transmission",
+      "enabled": false,
+      "baseUrl": "http://127.0.0.1:9091/transmission/rpc",
+      "username": "",
+      "password": ""
+    },
+    {
+      "name": "aria2",
+      "type": "aria2",
+      "enabled": false,
+      "baseUrl": "http://127.0.0.1:6800/jsonrpc",
+      "token": "",
+      "allowInvalidTLS": false,
+      "liveEvents": true,
+      "stoppedTaskLimit": 300
+    },
+    {
+      "name": "yt-dlp",
+      "type": "ytdlp",
+      "enabled": false,
+      "binaryPath": "yt-dlp",
+      "ffmpegPath": "ffmpeg",
+      "downloadDir": "./data/yt-dlp-downloads",
+      "format": "bv*+ba/b",
+      "outputTemplate": "%(title).80B.%(ext)s",
+      "cookiesPath": "",
+      "proxy": "",
+      "requireCookiesForYoutube": false,
+      "cleanHashtags": true,
+      "maxConcurrent": 10,
+      "noPlaylist": true,
+      "restrictFilenames": false,
+      "extraArgs": []
+    }
+  ]
+}

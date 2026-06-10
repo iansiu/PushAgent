@@ -1,0 +1,13 @@
+{
+  "name": "qiuyuremote-push-agent",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/index.mjs",
+    "check": "node --check src/index.mjs && node --check src/config.mjs && node --check src/store.mjs && node --check src/download-clients.mjs && node --check src/aria2-events.mjs && node --check src/relay-client.mjs && node --check src/web-ui.mjs && node --check src/ytdlp-service.mjs && node --check src/version.mjs"
+  }
+}
