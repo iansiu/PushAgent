@@ -2,6 +2,8 @@
 
 Public repository: <https://github.com/iansiu/PushAgent>
 
+Languages: English | [简体中文](docs/README.zh-Hans.md) | [繁體中文](docs/README.zh-Hant.md) | [日本語](docs/README.ja.md) | [한국어](docs/README.ko.md) | [Русский](docs/README.ru.md)
+
 Push Agent runs on the user's download server. It watches qBittorrent,
 Transmission, aria2, and optional yt-dlp tasks, then sends signed task events to
 Qiuyu's Push Relay so QiuyuRemote devices can receive download-complete,
