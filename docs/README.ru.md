@@ -194,6 +194,14 @@ data/relay-identity.json
 
 Код привязки одноразовый и действует ограниченное время.
 
+### 6. Постоянный запуск Agent
+
+```sh
+npm start
+```
+
+Для рабочего сервера рекомендуется использовать systemd или другой менеджер процессов. Полный пример systemd приведен ниже.
+
 ## Web Console
 
 ```text
@@ -201,6 +209,39 @@ http://YOUR_DOWNLOAD_SERVER_IP:8765
 ```
 
 В Web Console можно смотреть состояние Agent, Relay identity, диагностику служб, привязанные устройства, коды привязки, последние события, тестовые уведомления и проверку обновлений. Глобальное управление устройствами, приложениями и Relay nodes находится в админ-панели Push Relay.
+
+## Добавление устройств
+
+Один Agent может отправлять уведомления на несколько устройств QiuyuRemote. Не нужно запускать отдельный Agent для каждого iPhone, iPad или Mac.
+
+Самый простой способ:
+
+1. Создайте новый код привязки на новом устройстве QiuyuRemote.
+2. Откройте Web Console Agent.
+3. Введите код в разделе Pair Device.
+4. Привяжите новое устройство к существующему Agent.
+
+Также можно привязать устройство через API:
+
+```sh
+curl -X POST http://127.0.0.1:8765/v1/agent/pair \
+  -H 'Content-Type: application/json' \
+  -d '{"pairingCode":"NEW-CODE","agentName":"Home Agent"}'
+```
+
+Можно добавить несколько свежих кодов в `config.json` перед запуском:
+
+```json
+"pairingCode": "AAAA-BBBB, CCCC-DDDD"
+```
+
+Поддерживается и более явный формат массива:
+
+```json
+"pairingCodes": ["AAAA-BBBB", "CCCC-DDDD"]
+```
+
+Повторяющиеся коды в одном конфиге пропускаются. Использованные, истекшие или отозванные коды отображаются в терминале и в списке событий Web Console.
 
 ## API Key
 
@@ -226,6 +267,104 @@ openssl rand -hex 32
 ```sh
 -H 'Authorization: Bearer paste-the-random-key-here'
 ```
+
+В Web Console введите тот же key в разделе Access. Если страница показывает `API Key Required`, значит браузер не открывает Agent с той же машины или введенный key не совпадает с `config.json`.
+
+## Relay credentials
+
+Обычным пользователям достаточно оставить стандартные адреса Relay:
+
+```text
+https://push.qiuyu.org
+https://push1.qiuyu.org
+```
+
+Не заполняйте эти статические поля вручную, если вы не делаете специальное развертывание:
+
+- `relay.agentId`
+- `relay.secret`
+
+Во время привязки Push Relay возвращает Agent ID и signing secret. Agent автоматически сохраняет их в `data/relay-identity.json`. Не копируйте secret в `config.json`, если это не специальное статическое развертывание.
+
+Для разработки или тестирования приватного Relay можно задать свои `relay.urls`:
+
+```json
+"relay": {
+  "urls": [
+    "https://push.example.com",
+    "https://push-backup.example.com"
+  ]
+}
+```
+
+Статические Relay credentials также поддерживаются только для специальных развертываний:
+
+```json
+"relay": {
+  "agentId": "agent_xxx",
+  "secret": "relay-signing-secret"
+}
+```
+
+## Уведомления
+
+Agent отправляет события для:
+
+- завершения загрузки;
+- ошибки загрузки;
+- долгого отсутствия данных у активной задачи;
+- отключения отслеживаемого сервера;
+- восстановления отслеживаемого сервера;
+- тестовых push-событий.
+
+Первичное сканирование считается базовой линией. Уже завершенные или ошибочные задачи, найденные при первом запуске Agent, не создают новых уведомлений. Уведомления отправляются только для последующих изменений конечного состояния.
+
+Для активных загрузок Agent записывает последнее время, когда задача сообщала скорость загрузки или рост прогресса. Если незавершенная задача не получает данных в течение `monitor.inactiveDownloadNoticeSeconds` секунд, Agent отправляет одно уведомление `download_inactive`. Состояние сбрасывается только после того, как задача снова получит данные, поэтому уведомление не повторяется на каждом цикле опроса.
+
+Если Push Relay принимает событие, но ни одно устройство не получает его, Agent все равно записывает задачу как уже отправленную. Это предотвращает повторную отправку одной и той же завершенной или ошибочной задачи на каждом цикле, когда все устройства отключены или еще нет привязанных устройств.
+
+## Справочник полей
+
+| Поле | Описание |
+| --- | --- |
+| `host` | Адрес прослушивания Agent. По умолчанию `127.0.0.1`, только локальный доступ. Используйте `0.0.0.0` только если Web Console должен открываться с других машин, и сначала задайте `apiKey`. |
+| `port` | Порт Agent. По умолчанию `8765`. |
+| `apiKey` | Локальный API key. Можно оставить пустым только для локального доступа; для удаленного доступа задайте случайное значение. |
+| `pairingCode` | Один код или несколько кодов, разделенных запятыми, пробелами или точками с запятой. После успешной привязки очистите поле. |
+| `pairingCodes` | Необязательный массив кодов привязки. |
+| `agentName` | Имя Agent, отображаемое в Push Relay, например `Home Agent`. |
+| `dataDir` | Каталог для `relay-identity.json`, состояния задач и состояния серверов. |
+| `relay.urls` | Адреса Push Relay. Пример уже содержит основной и резервный Relay Qiuyu. |
+| `monitor.pollIntervalSeconds` | Интервал опроса служб загрузки. По умолчанию `30`, минимальный runtime-интервал `10`. |
+| `monitor.inactiveDownloadNoticeEnabled` | Отправлять ли уведомление, когда активная незавершенная задача долго не получает данные. По умолчанию `true`. |
+| `monitor.inactiveDownloadNoticeSeconds` | Порог отсутствия данных в секундах. По умолчанию `1800`, то есть 30 минут. |
+| `updateCheck.enabled` | Проверять ли новую публичную версию PushAgent на Web странице Agent. По умолчанию `true`. |
+| `updateCheck.repositoryURL` | GitHub-страница, открываемая из Web страницы Agent. |
+| `updateCheck.url` | URL метаданных обновления. По умолчанию читает version из публичного `package.json` на GitHub. |
+| `updateCheck.intervalSeconds` | Минимальный интервал кеширования проверки обновлений. По умолчанию `3600`. |
+| `updateCheck.timeoutSeconds` | Таймаут сети для проверки обновлений. По умолчанию `4`. |
+| `servers` | Конфиги подключений qBittorrent, Transmission, aria2 и опционально yt-dlp. |
+| `servers[].name` | Отображаемое имя. Можно менять в любое время. |
+| `servers[].type` | Тип службы загрузки. Поддерживаются `qbit`, `transmission`, `aria2`, `ytdlp`. |
+| `servers[].enabled` | Отслеживать ли эту службу. Если отсутствует или `true`, служба включена; `false` оставляет шаблон без мониторинга. |
+| `servers[].username` / `servers[].password` | Данные входа для qBittorrent и Transmission. Оставьте пустыми, если авторизация не нужна. |
+| `servers[].token` | aria2 RPC secret token. Оставьте пустым, если не нужен. |
+| `servers[].allowInvalidTLS` | Разрешить недействительные TLS-сертификаты для локального сервера, в основном для локального aria2 HTTPS RPC. |
+| `servers[].liveEvents` | Только aria2. Включает WebSocket-события завершения. По умолчанию включено. |
+| `servers[].stoppedTaskLimit` | Только aria2. Количество остановленных задач, запрашиваемых при опросе. |
+| `servers[].binaryPath` | Только yt-dlp. Имя команды или абсолютный путь, по умолчанию `yt-dlp`. |
+| `servers[].ffmpegPath` | Только yt-dlp. Имя команды ffmpeg или абсолютный путь, по умолчанию `ffmpeg`. |
+| `servers[].downloadDir` | Только yt-dlp. Каталог загрузки по умолчанию. Каталог, указанный для задачи в QiuyuRemote, имеет приоритет. |
+| `servers[].format` | Только yt-dlp. Формат selector по умолчанию. |
+| `servers[].outputTemplate` | Только yt-dlp. Шаблон имени выходного файла. По умолчанию используется `%(title).80B.%(ext)s`, чтобы заголовки были короче. |
+| `servers[].cookiesPath` | Только yt-dlp. Путь к cookies-файлу для сайтов, требующих входа. |
+| `servers[].proxy` | Только yt-dlp. Proxy, передаваемый в yt-dlp. |
+| `servers[].requireCookiesForYoutube` | Только yt-dlp. Если `true`, YouTube URL без cookies заранее возвращает понятную ошибку. |
+| `servers[].cleanHashtags` | Только yt-dlp. По умолчанию `true`; удаляет trailing hashtag-текст из заголовков перед созданием имени файла. |
+| `servers[].maxConcurrent` | Только yt-dlp. Максимальное число активных процессов yt-dlp. По умолчанию `10`. |
+| `servers[].noPlaylist` | Только yt-dlp. По умолчанию `true`; не дает одному URL раскрыться в загрузку всего плейлиста. |
+| `servers[].restrictFilenames` | Только yt-dlp. Использует более безопасные символы в именах файлов. |
+| `servers[].extraArgs` | Только yt-dlp. Массив дополнительных аргументов для продвинутой настройки. Agent передает их как массив аргументов spawn, а не shell-строку. Аргументы, управляемые QiuyuRemote, например `--output`, `--format`, `--cookies`, `--proxy`, `--paths`, здесь игнорируются для предсказуемого поведения. |
 
 ## Частые команды
 
@@ -308,3 +447,28 @@ curl http://127.0.0.1:8765/v1/diagnostics
 ```json
 "allowInvalidTLS": true
 ```
+
+Если очень быстрые задачи aria2 пропускаются, держите `liveEvents` включенным и при необходимости увеличьте `max-download-result` в aria2.
+
+## Переменные окружения
+
+Большинству пользователей они не нужны. Они полезны для менеджеров сервисов или кастомных развертываний:
+
+- `QIUYU_AGENT_CONFIG`: путь к конфигурационному файлу
+- `QIUYU_AGENT_HOST`
+- `QIUYU_AGENT_PORT`
+- `QIUYU_AGENT_API_KEY`
+- `QIUYU_AGENT_PAIRING_CODE`
+- `QIUYU_AGENT_PAIRING_CODES`: коды привязки через запятую
+- `QIUYU_AGENT_NAME`
+- `QIUYU_AGENT_DATA_DIR`
+- `QIUYU_AGENT_POLL_INTERVAL_SECONDS`
+- `QIUYU_RELAY_URL`: кастомный Relay URL для разработки
+- `QIUYU_RELAY_URLS`: список кастомных Relay URL через запятую
+- `QIUYU_RELAY_AGENT_ID`: статический Relay Agent ID для специальных развертываний
+- `QIUYU_RELAY_SECRET`: статический Relay Agent secret для специальных развертываний
+- `QIUYU_AGENT_UPDATE_CHECK_ENABLED`
+- `QIUYU_AGENT_UPDATE_CHECK_URL`
+- `QIUYU_AGENT_REPOSITORY_URL`
+- `QIUYU_AGENT_UPDATE_CHECK_INTERVAL_SECONDS`
+- `QIUYU_AGENT_UPDATE_CHECK_TIMEOUT_SECONDS`

@@ -32,8 +32,6 @@ cd /root/PushAgent
 npm install
 ```
 
-如果你正在 QiuyuRemote 私有工程中開發測試，也可以直接複製 `Services/PushAgent` 資料夾到伺服器。
-
 ### 2. 建立 `config.json`
 
 ```sh
@@ -196,6 +194,14 @@ data/relay-identity.json
 
 配對碼是一次性且有有效期限的。如果舊配對碼留在配置裡，Agent 下次啟動會再次嘗試兌換，並顯示已經使用過的提示。
 
+### 6. 保持 Agent 執行
+
+```sh
+npm start
+```
+
+正式使用時建議使用 systemd 或其它程序管理器。下面有完整 systemd 範例。
+
 ## Web 控制台
 
 Push Agent 自帶一個簡單的 Web 控制台：
@@ -205,6 +211,39 @@ http://YOUR_DOWNLOAD_SERVER_IP:8765
 ```
 
 它可以查看 Agent 狀態、Relay 身分、下載服務診斷、配對裝置、配對碼記錄、最近事件、測試通知和版本更新提示。全域裝置、應用程式、中繼節點等管理功能屬於 Push Relay 後台。
+
+## 新增更多裝置
+
+一個 Agent 可以同時通知多台 QiuyuRemote 裝置。你不需要為每台 iPhone、iPad 或 Mac 分別執行一個 Agent。
+
+最簡單的方法：
+
+1. 在新的 QiuyuRemote 裝置上產生新的配對碼。
+2. 開啟 Agent Web 控制台。
+3. 在配對裝置區域輸入配對碼。
+4. 把新裝置配對到已有 Agent。
+
+也可以透過 API 配對：
+
+```sh
+curl -X POST http://127.0.0.1:8765/v1/agent/pair \
+  -H 'Content-Type: application/json' \
+  -d '{"pairingCode":"NEW-CODE","agentName":"Home Agent"}'
+```
+
+也可以在啟動前把多個新配對碼寫入 `config.json`：
+
+```json
+"pairingCode": "AAAA-BBBB, CCCC-DDDD"
+```
+
+更清楚的陣列寫法也支援：
+
+```json
+"pairingCodes": ["AAAA-BBBB", "CCCC-DDDD"]
+```
+
+同一個配置裡重複的配對碼會被略過。已使用、已過期或已撤銷的配對碼會在終端和 Web 控制台事件列表中清楚顯示。
 
 ## API Key
 
@@ -232,6 +271,104 @@ API 請求需要加：
 ```sh
 -H 'Authorization: Bearer paste-the-random-key-here'
 ```
+
+在 Web 控制台裡，在存取區域輸入同一個 key。如果頁面顯示需要 API Key，表示目前瀏覽器不是從 Agent 本機存取，或輸入的 key 和 `config.json` 不一致。
+
+## Relay 憑證
+
+一般使用者保持預設 Relay 位址即可：
+
+```text
+https://push.qiuyu.org
+https://push1.qiuyu.org
+```
+
+除非你在做特殊部署，否則不要手動填寫這些靜態憑證欄位：
+
+- `relay.agentId`
+- `relay.secret`
+
+配對時 Push Relay 會回傳 Agent ID 和簽名密鑰。Agent 會自動保存到 `data/relay-identity.json`。除非你在做特殊靜態憑證部署，否則不要把 secret 複製到 `config.json`。
+
+僅在開發或私有 Relay 測試時，才需要自訂 `relay.urls`：
+
+```json
+"relay": {
+  "urls": [
+    "https://push.example.com",
+    "https://push-backup.example.com"
+  ]
+}
+```
+
+特殊部署也可以使用靜態 Relay 憑證：
+
+```json
+"relay": {
+  "agentId": "agent_xxx",
+  "secret": "relay-signing-secret"
+}
+```
+
+## 通知規則
+
+Agent 會傳送這些事件：
+
+- 下載完成
+- 下載失敗
+- 任務長時間沒有接收到資料
+- 受監控的下載服務離線
+- 受監控的下載服務恢復在線
+- 測試推送事件
+
+初始掃描會被當作基線。Agent 第一次啟動時已經存在的完成或失敗任務不會觸發新通知，之後發生的終態變化才會通知。
+
+對於正在下載的任務，Agent 會記錄任務最後一次出現下載速度或進度增長的時間。如果一個未完成任務在 `monitor.inactiveDownloadNoticeSeconds` 秒內沒有任何資料，Agent 會傳送一次 `download_inactive` 通知。只有該任務重新收到資料後，這個提醒狀態才會重置，所以它不會每個輪詢週期重複通知。
+
+如果 Push Relay 接受了事件但沒有任何裝置收到通知，Agent 仍會把該任務記錄為已經上報。這樣當所有裝置被停用或還沒有配對裝置時，同一個完成/失敗任務不會在每個輪詢週期反覆傳送。
+
+## 欄位說明
+
+| 欄位 | 說明 |
+| --- | --- |
+| `host` | Agent 監聽位址。預設 `127.0.0.1`，只允許本機存取。只有在其它機器需要開啟 Agent Web 控制台時才改成 `0.0.0.0`，並且應先設定 `apiKey`。 |
+| `port` | Agent 連接埠，預設 `8765`。 |
+| `apiKey` | 本地 API Key。只有本機存取可以留空；遠端存取建議設定隨機值。 |
+| `pairingCode` | 單個配對碼，或用逗號、空格、分號分隔多個配對碼。配對成功後請清空。 |
+| `pairingCodes` | 可選的多個配對碼陣列。 |
+| `agentName` | Relay 上顯示的 Agent 名稱，例如 `Home Agent`。 |
+| `dataDir` | Agent 存放 `relay-identity.json`、任務狀態和服務狀態的位置。 |
+| `relay.urls` | Push Relay 位址。範例已經包含 Qiuyu 的主 Relay 和備用 Relay。 |
+| `monitor.pollIntervalSeconds` | 下載服務輪詢間隔，預設 `30` 秒，執行時最小值為 `10` 秒。 |
+| `monitor.inactiveDownloadNoticeEnabled` | 是否在執行中的未完成任務長時間無資料時通知。預設 `true`。 |
+| `monitor.inactiveDownloadNoticeSeconds` | 無資料閾值，預設 `1800` 秒，也就是 30 分鐘。 |
+| `updateCheck.enabled` | Agent Web 頁面是否檢查公開 PushAgent 新版本。預設 `true`。 |
+| `updateCheck.repositoryURL` | Agent Web 頁面開啟的 GitHub 頁面。 |
+| `updateCheck.url` | 更新中繼資料位址，預設讀取 GitHub 上公開 `package.json` 的版本號。 |
+| `updateCheck.intervalSeconds` | 更新檢查快取間隔，預設 `3600` 秒。 |
+| `updateCheck.timeoutSeconds` | 更新檢查網路逾時，預設 `4` 秒。 |
+| `servers` | qBittorrent、Transmission、aria2、可選 yt-dlp 的連線配置。 |
+| `servers[].name` | 顯示名稱，可隨時修改。 |
+| `servers[].type` | 下載服務類型。支援 `qbit`、`transmission`、`aria2`、`ytdlp`。 |
+| `servers[].enabled` | 是否監控該服務。省略或設為 `true` 表示啟用，設為 `false` 可保留範本但不監控。 |
+| `servers[].username` / `servers[].password` | qBittorrent 和 Transmission 登入欄位。不需要認證時留空。 |
+| `servers[].token` | aria2 RPC secret token。不需要時留空。 |
+| `servers[].allowInvalidTLS` | 是否允許該本地服務使用無效 TLS 憑證，主要用於本地 aria2 HTTPS RPC。 |
+| `servers[].liveEvents` | 僅 aria2。啟用 WebSocket 終端事件通知，預設啟用。 |
+| `servers[].stoppedTaskLimit` | 僅 aria2。輪詢時查詢的已停止任務數量。 |
+| `servers[].binaryPath` | 僅 yt-dlp。命令名或絕對路徑，預設 `yt-dlp`。 |
+| `servers[].ffmpegPath` | 僅 yt-dlp。ffmpeg 命令名或絕對路徑，預設 `ffmpeg`。 |
+| `servers[].downloadDir` | 僅 yt-dlp。預設下載目錄。QiuyuRemote 中每個任務填寫的目錄會覆蓋它。 |
+| `servers[].format` | 僅 yt-dlp。預設格式選擇器。 |
+| `servers[].outputTemplate` | 僅 yt-dlp。輸出檔名範本。預設使用 `%(title).80B.%(ext)s` 縮短標題。 |
+| `servers[].cookiesPath` | 僅 yt-dlp。需要登入 Cookie 的網站可填寫 Cookie 檔案路徑。 |
+| `servers[].proxy` | 僅 yt-dlp。傳給 yt-dlp 的代理位址。 |
+| `servers[].requireCookiesForYoutube` | 僅 yt-dlp。若為 `true`，YouTube URL 在未配置 Cookie 時會提前回傳友好錯誤。 |
+| `servers[].cleanHashtags` | 僅 yt-dlp。預設 `true`，產生檔名前移除標題末尾 hashtag 文字。 |
+| `servers[].maxConcurrent` | 僅 yt-dlp。最大並發 yt-dlp 程序數，預設 `10`。 |
+| `servers[].noPlaylist` | 僅 yt-dlp。預設 `true`，避免單個 URL 自動展開成播放清單下載。 |
+| `servers[].restrictFilenames` | 僅 yt-dlp。讓 yt-dlp 使用更保守的檔名字元。 |
+| `servers[].extraArgs` | 僅 yt-dlp。進階參數陣列。Agent 使用 spawn 參數陣列傳遞，不使用 shell 拼接。受 QiuyuRemote 控制的 `--output`、`--format`、`--cookies`、`--proxy`、`--paths` 會在這裡被忽略，以保持任務行為可預測。 |
 
 ## 常用命令
 
@@ -314,3 +451,26 @@ aria2 HTTPS 憑證錯誤時，可以在本地服務配置中設定：
 ```json
 "allowInvalidTLS": true
 ```
+
+## 環境變數
+
+大多數使用者不需要這些。它們主要用於服務管理器或自訂部署：
+
+- `QIUYU_AGENT_CONFIG`：配置檔案路徑
+- `QIUYU_AGENT_HOST`
+- `QIUYU_AGENT_PORT`
+- `QIUYU_AGENT_API_KEY`
+- `QIUYU_AGENT_PAIRING_CODE`
+- `QIUYU_AGENT_PAIRING_CODES`：逗號分隔的配對碼
+- `QIUYU_AGENT_NAME`
+- `QIUYU_AGENT_DATA_DIR`
+- `QIUYU_AGENT_POLL_INTERVAL_SECONDS`
+- `QIUYU_RELAY_URL`：開發用自訂 Relay URL
+- `QIUYU_RELAY_URLS`：開發用逗號分隔 Relay URL 列表
+- `QIUYU_RELAY_AGENT_ID`：特殊部署使用的靜態 Relay Agent ID
+- `QIUYU_RELAY_SECRET`：特殊部署使用的靜態 Relay Agent secret
+- `QIUYU_AGENT_UPDATE_CHECK_ENABLED`
+- `QIUYU_AGENT_UPDATE_CHECK_URL`
+- `QIUYU_AGENT_REPOSITORY_URL`
+- `QIUYU_AGENT_UPDATE_CHECK_INTERVAL_SECONDS`
+- `QIUYU_AGENT_UPDATE_CHECK_TIMEOUT_SECONDS`

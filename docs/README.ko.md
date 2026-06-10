@@ -194,6 +194,14 @@ data/relay-identity.json
 
 페어링 코드는 일회성이며 짧은 시간 동안만 유효합니다.
 
+### 6. Agent 계속 실행하기
+
+```sh
+npm start
+```
+
+실제 운영에서는 systemd 또는 다른 프로세스 관리자를 사용하는 것이 좋습니다. 아래에 systemd 전체 예시가 있습니다.
+
 ## Web 콘솔
 
 ```text
@@ -201,6 +209,39 @@ http://YOUR_DOWNLOAD_SERVER_IP:8765
 ```
 
 Web 콘솔에서는 Agent 상태, Relay ID, 서비스 진단, 페어링된 디바이스, 페어링 코드 기록, 최근 이벤트, 테스트 알림, 업데이트 확인을 볼 수 있습니다. 전체 디바이스, 앱, Relay 노드 관리는 Push Relay 관리자 콘솔에서 처리합니다.
+
+## 기기 추가하기
+
+하나의 Agent가 여러 QiuyuRemote 기기에 알림을 보낼 수 있습니다. iPhone, iPad, Mac마다 Agent 프로세스를 따로 실행할 필요는 없습니다.
+
+가장 쉬운 방법:
+
+1. 새 QiuyuRemote 기기에서 새 페어링 코드를 생성합니다.
+2. Agent Web 콘솔을 엽니다.
+3. Pair Device 영역에 페어링 코드를 입력합니다.
+4. 새 기기를 기존 Agent에 페어링합니다.
+
+API로도 페어링할 수 있습니다.
+
+```sh
+curl -X POST http://127.0.0.1:8765/v1/agent/pair \
+  -H 'Content-Type: application/json' \
+  -d '{"pairingCode":"NEW-CODE","agentName":"Home Agent"}'
+```
+
+시작하기 전에 여러 새 코드를 `config.json`에 넣을 수도 있습니다.
+
+```json
+"pairingCode": "AAAA-BBBB, CCCC-DDDD"
+```
+
+배열 형식도 지원됩니다.
+
+```json
+"pairingCodes": ["AAAA-BBBB", "CCCC-DDDD"]
+```
+
+같은 설정에 중복된 코드는 건너뜁니다. 사용됨, 만료됨, 취소됨 상태의 코드는 터미널과 Web 콘솔 이벤트 목록에 명확히 표시됩니다.
 
 ## API Key
 
@@ -226,6 +267,104 @@ API 요청에는 다음 헤더가 필요합니다.
 ```sh
 -H 'Authorization: Bearer paste-the-random-key-here'
 ```
+
+Web 콘솔에서는 Access 영역에 같은 key를 입력하세요. 페이지에 `API Key Required`가 표시되면 브라우저가 Agent와 같은 서버에서 접속하지 않았거나 입력한 key가 `config.json`과 일치하지 않는 것입니다.
+
+## Relay 자격 증명
+
+일반 사용자는 기본 Relay 주소를 그대로 유지하면 됩니다.
+
+```text
+https://push.qiuyu.org
+https://push1.qiuyu.org
+```
+
+특수 배포가 아니라면 다음 정적 자격 증명 필드를 직접 채우지 마세요.
+
+- `relay.agentId`
+- `relay.secret`
+
+페어링 중 Push Relay는 Agent ID와 서명 secret을 반환합니다. Agent는 이를 `data/relay-identity.json`에 자동 저장합니다. 특수한 정적 자격 증명 배포가 아니라면 secret을 `config.json`에 복사하지 마세요.
+
+개발 또는 개인 Relay 테스트에서만 사용자 지정 `relay.urls`를 사용합니다.
+
+```json
+"relay": {
+  "urls": [
+    "https://push.example.com",
+    "https://push-backup.example.com"
+  ]
+}
+```
+
+특수 배포에서는 정적 Relay 자격 증명도 사용할 수 있습니다.
+
+```json
+"relay": {
+  "agentId": "agent_xxx",
+  "secret": "relay-signing-secret"
+}
+```
+
+## 알림
+
+Agent는 다음 이벤트를 보냅니다.
+
+- 다운로드 완료
+- 다운로드 실패
+- 실행 중인 작업이 오랫동안 데이터를 받지 못함
+- 감시 중인 서버가 오프라인이 됨
+- 감시 중인 서버가 다시 온라인이 됨
+- 테스트 푸시 이벤트
+
+초기 스캔은 기준 상태로 처리됩니다. Agent가 처음 시작될 때 이미 완료되었거나 실패한 기존 작업은 새 알림을 만들지 않습니다. 이후 발생하는 최종 상태 변화만 알림을 보냅니다.
+
+실행 중인 다운로드의 경우 Agent는 마지막으로 다운로드 속도나 진행률 증가가 보고된 시간을 기록합니다. 완료되지 않은 작업이 `monitor.inactiveDownloadNoticeSeconds`초 동안 데이터를 받지 못하면 Agent는 `download_inactive` 알림을 한 번 보냅니다. 해당 작업이 다시 데이터를 받은 뒤에만 상태가 초기화되므로 매 폴링마다 반복 알림을 보내지 않습니다.
+
+Push Relay가 이벤트를 받았지만 알림을 받을 기기가 0대인 경우에도 Agent는 해당 작업을 이미 보고된 것으로 기록합니다. 모든 기기가 비활성화되었거나 아직 페어링된 기기가 없을 때 같은 완료/실패 작업을 계속 보내는 것을 막기 위한 동작입니다.
+
+## 필드 참조
+
+| 필드 | 설명 |
+| --- | --- |
+| `host` | Agent 수신 주소입니다. 기본값은 로컬 전용 `127.0.0.1`입니다. 다른 기기에서 Agent Web 콘솔을 열어야 할 때만 `0.0.0.0`으로 바꾸고 먼저 `apiKey`를 설정하세요. |
+| `port` | Agent 포트입니다. 기본값은 `8765`입니다. |
+| `apiKey` | 로컬 API key입니다. 로컬에서만 사용할 경우 비워 둘 수 있고, 원격 접근이 필요하면 랜덤 값을 설정하세요. |
+| `pairingCode` | 하나의 코드 또는 쉼표, 공백, 세미콜론으로 구분한 여러 코드입니다. 페어링 성공 후 비워 주세요. |
+| `pairingCodes` | 여러 페어링 코드를 배열로 지정할 수 있습니다. |
+| `agentName` | Push Relay에 표시되는 Agent 이름입니다. 예: `Home Agent`. |
+| `dataDir` | `relay-identity.json`, 작업 상태, 서버 상태를 저장하는 위치입니다. |
+| `relay.urls` | Push Relay 주소입니다. 예시는 Qiuyu 기본 Relay와 백업 Relay를 포함합니다. |
+| `monitor.pollIntervalSeconds` | 다운로드 서비스 폴링 간격입니다. 기본값은 `30`초이고 런타임 최소값은 `10`초입니다. |
+| `monitor.inactiveDownloadNoticeEnabled` | 실행 중인 미완료 작업이 오랫동안 데이터를 받지 못할 때 알림을 보낼지 여부입니다. 기본값은 `true`입니다. |
+| `monitor.inactiveDownloadNoticeSeconds` | 데이터 없음으로 판단하는 시간입니다. 기본값은 `1800`초, 즉 30분입니다. |
+| `updateCheck.enabled` | Agent Web 페이지가 공개 PushAgent 새 버전을 확인할지 여부입니다. 기본값은 `true`입니다. |
+| `updateCheck.repositoryURL` | Agent Web 페이지에서 여는 GitHub 페이지입니다. |
+| `updateCheck.url` | 업데이트 메타데이터 URL입니다. 기본값은 GitHub의 공개 `package.json`에서 version을 읽습니다. |
+| `updateCheck.intervalSeconds` | 업데이트 확인 캐시 간격입니다. 기본값은 `3600`초입니다. |
+| `updateCheck.timeoutSeconds` | 업데이트 확인 네트워크 제한 시간입니다. 기본값은 `4`초입니다. |
+| `servers` | qBittorrent, Transmission, aria2, 선택적 yt-dlp 연결 설정입니다. |
+| `servers[].name` | 표시 이름입니다. 언제든 바꿀 수 있습니다. |
+| `servers[].type` | 서비스 유형입니다. `qbit`, `transmission`, `aria2`, `ytdlp`를 지원합니다. |
+| `servers[].enabled` | 이 서비스를 감시할지 여부입니다. 생략하거나 `true`이면 활성화, `false`이면 템플릿만 남기고 감시하지 않습니다. |
+| `servers[].username` / `servers[].password` | qBittorrent와 Transmission 로그인 정보입니다. 인증이 필요 없으면 비워 둡니다. |
+| `servers[].token` | aria2 RPC secret token입니다. 필요 없으면 비워 둡니다. |
+| `servers[].allowInvalidTLS` | 해당 로컬 서버의 유효하지 않은 TLS 인증서를 허용할지 여부입니다. 주로 로컬 aria2 HTTPS RPC에 사용합니다. |
+| `servers[].liveEvents` | aria2 전용입니다. WebSocket 완료 이벤트 알림을 켭니다. 기본적으로 켜져 있습니다. |
+| `servers[].stoppedTaskLimit` | aria2 전용입니다. 폴링 시 조회할 중지된 작업 수입니다. |
+| `servers[].binaryPath` | yt-dlp 전용입니다. 명령 이름 또는 절대 경로입니다. 기본값은 `yt-dlp`입니다. |
+| `servers[].ffmpegPath` | yt-dlp 전용입니다. ffmpeg 명령 이름 또는 절대 경로입니다. 기본값은 `ffmpeg`입니다. |
+| `servers[].downloadDir` | yt-dlp 전용입니다. 기본 저장 디렉터리입니다. QiuyuRemote에서 작업별로 입력한 디렉터리가 우선합니다. |
+| `servers[].format` | yt-dlp 전용입니다. 기본 format selector입니다. |
+| `servers[].outputTemplate` | yt-dlp 전용입니다. 출력 파일명 템플릿입니다. 기본값은 `%(title).80B.%(ext)s`로 제목을 짧게 유지합니다. |
+| `servers[].cookiesPath` | yt-dlp 전용입니다. 로그인 Cookie가 필요한 사이트용 Cookie 파일 경로입니다. |
+| `servers[].proxy` | yt-dlp 전용입니다. yt-dlp에 전달할 proxy입니다. |
+| `servers[].requireCookiesForYoutube` | yt-dlp 전용입니다. `true`이면 Cookie가 없는 YouTube URL에 대해 일찍 친절한 오류를 반환합니다. |
+| `servers[].cleanHashtags` | yt-dlp 전용입니다. 기본값은 `true`이며 파일명 생성 전에 제목 끝의 hashtag 텍스트를 제거합니다. |
+| `servers[].maxConcurrent` | yt-dlp 전용입니다. 동시에 실행할 yt-dlp 프로세스 수입니다. 기본값은 `10`입니다. |
+| `servers[].noPlaylist` | yt-dlp 전용입니다. 기본값은 `true`이며 하나의 URL이 전체 재생목록 다운로드로 확장되는 것을 막습니다. |
+| `servers[].restrictFilenames` | yt-dlp 전용입니다. 더 보수적인 파일명 문자를 사용하게 합니다. |
+| `servers[].extraArgs` | yt-dlp 전용 고급 인수 배열입니다. Agent는 shell 문자열이 아니라 spawn 인수 배열로 전달합니다. QiuyuRemote가 제어하는 `--output`, `--format`, `--cookies`, `--proxy`, `--paths`는 여기서 무시됩니다. |
 
 ## 자주 쓰는 명령
 
@@ -308,3 +447,28 @@ aria2 HTTPS 인증서 오류가 로컬 서비스에서 발생한다면 다음을
 ```json
 "allowInvalidTLS": true
 ```
+
+매우 빠르게 완료되는 aria2 작업이 누락된다면 `liveEvents`를 켜고 필요하면 aria2의 `max-download-result`를 늘리세요.
+
+## 환경 변수
+
+대부분의 사용자는 필요하지 않습니다. 서비스 관리자나 사용자 지정 배포에서 사용할 수 있습니다.
+
+- `QIUYU_AGENT_CONFIG`: 설정 파일 경로
+- `QIUYU_AGENT_HOST`
+- `QIUYU_AGENT_PORT`
+- `QIUYU_AGENT_API_KEY`
+- `QIUYU_AGENT_PAIRING_CODE`
+- `QIUYU_AGENT_PAIRING_CODES`: 쉼표로 구분한 페어링 코드
+- `QIUYU_AGENT_NAME`
+- `QIUYU_AGENT_DATA_DIR`
+- `QIUYU_AGENT_POLL_INTERVAL_SECONDS`
+- `QIUYU_RELAY_URL`: 개발용 사용자 지정 Relay URL
+- `QIUYU_RELAY_URLS`: 쉼표로 구분한 사용자 지정 Relay URL 목록
+- `QIUYU_RELAY_AGENT_ID`: 특수 배포용 정적 Relay Agent ID
+- `QIUYU_RELAY_SECRET`: 특수 배포용 정적 Relay Agent secret
+- `QIUYU_AGENT_UPDATE_CHECK_ENABLED`
+- `QIUYU_AGENT_UPDATE_CHECK_URL`
+- `QIUYU_AGENT_REPOSITORY_URL`
+- `QIUYU_AGENT_UPDATE_CHECK_INTERVAL_SECONDS`
+- `QIUYU_AGENT_UPDATE_CHECK_TIMEOUT_SECONDS`

@@ -37,9 +37,6 @@ cd /root/PushAgent
 npm install
 ```
 
-If you are testing from the private QiuyuRemote monorepo, you can also copy the
-`Services/PushAgent` folder to `/root/PushAgent`.
-
 ### 2. Create `config.json`
 
 ```sh
