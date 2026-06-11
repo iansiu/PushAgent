@@ -231,6 +231,60 @@ and different `cookiesPath` files, such as `youtube.txt`, `tiktok.txt`, and
 browser sessions. If you want YouTube downloads to fail early whenever cookies
 are not configured, set `requireCookiesForYoutube` to `true`.
 
+YouTube may also require yt-dlp's external JavaScript support for signature and
+`n` challenge solving. Install Deno, make it visible to both your shell and
+systemd, then test the exact server command before using QiuyuRemote:
+
+```bash
+curl -fsSL https://deno.land/install.sh | sh
+ln -sf /root/.deno/bin/deno /usr/local/bin/deno
+/usr/local/bin/deno --version
+python3 -m pip install -U "yt-dlp[default]"
+apt install -y ffmpeg
+```
+
+Export YouTube cookies to the Agent server, for example
+`/root/PushAgent/cookies/youtube.txt`, protect the file, and test one video URL
+with playlists disabled:
+
+```bash
+chmod 600 /root/PushAgent/cookies/youtube.txt
+yt-dlp -F \
+  --no-playlist \
+  --cookies /root/PushAgent/cookies/youtube.txt \
+  --remote-components ejs:github \
+  --js-runtimes deno:/usr/local/bin/deno \
+  "https://www.youtube.com/watch?v=VIDEO_ID"
+```
+
+The expected output should include `[jsc:deno] Solving JS challenges using deno`
+and list real audio/video formats such as 720p or 1080p. If the output only
+shows storyboard images, update yt-dlp and check Deno/EJS again. If YouTube
+returns `HTTP Error 429: Too Many Requests`, the server IP is being rate limited;
+wait before retrying or configure `proxy`.
+
+After that, put the same options into the yt-dlp service config:
+
+```json
+{
+  "cookiesPath": "/root/PushAgent/cookies/youtube.txt",
+  "requireCookiesForYoutube": true,
+  "noPlaylist": true,
+  "extraArgs": [
+    "--remote-components",
+    "ejs:github",
+    "--js-runtimes",
+    "deno:/usr/local/bin/deno"
+  ]
+}
+```
+
+Restart Push Agent after changing the config:
+
+```bash
+systemctl restart pushagent
+```
+
 In QiuyuRemote, add a download server with type `yt-dlp`, host/port pointing to
 this Push Agent, and path `v1/ytdlp`. If the app connects from another device,
 set `apiKey` in `config.json`, restart the Agent, and enter the same value in

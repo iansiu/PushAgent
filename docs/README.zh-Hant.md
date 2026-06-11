@@ -151,6 +151,52 @@ yt-dlp 範例：
 
 一個 Netscape 格式 Cookie 檔案可以包含多個網域的 Cookie，yt-dlp 會依 URL 自動使用對應網域的 Cookie。Cookie 檔案請妥善保存，不要公開。
 
+YouTube 也可能需要 yt-dlp 的外部 JavaScript 支援，用來解析簽名和 `n` challenge。請先安裝 Deno，並確保目前 shell 和 systemd 都能找到它：
+
+```bash
+curl -fsSL https://deno.land/install.sh | sh
+ln -sf /root/.deno/bin/deno /usr/local/bin/deno
+/usr/local/bin/deno --version
+python3 -m pip install -U "yt-dlp[default]"
+apt install -y ffmpeg
+```
+
+把 YouTube Cookie 上傳到伺服器，例如 `/root/PushAgent/cookies/youtube.txt`，然後先在伺服器上測試單一影片連結。注意加上 `--no-playlist`，否則帶 `list=` 的連結會展開整個播放清單：
+
+```bash
+chmod 600 /root/PushAgent/cookies/youtube.txt
+yt-dlp -F \
+  --no-playlist \
+  --cookies /root/PushAgent/cookies/youtube.txt \
+  --remote-components ejs:github \
+  --js-runtimes deno:/usr/local/bin/deno \
+  "https://www.youtube.com/watch?v=VIDEO_ID"
+```
+
+正常情況下輸出會出現 `[jsc:deno] Solving JS challenges using deno`，並列出 720p、1080p 等真實音影片格式。如果只看到 storyboard 圖片格式，表示 yt-dlp、Deno 或 EJS 元件尚未正常工作。如果出現 `HTTP Error 429: Too Many Requests`，表示伺服器 IP 被 YouTube 暫時限流，需要稍後再試或配置 `proxy`。
+
+測試成功後，把相同參數寫入 yt-dlp 服務配置：
+
+```json
+{
+  "cookiesPath": "/root/PushAgent/cookies/youtube.txt",
+  "requireCookiesForYoutube": true,
+  "noPlaylist": true,
+  "extraArgs": [
+    "--remote-components",
+    "ejs:github",
+    "--js-runtimes",
+    "deno:/usr/local/bin/deno"
+  ]
+}
+```
+
+修改配置後重啟 Agent：
+
+```bash
+systemctl restart pushagent
+```
+
 ### 4. 產生 Agent 配對碼
 
 在 QiuyuRemote 中：

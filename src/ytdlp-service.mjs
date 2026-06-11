@@ -499,11 +499,20 @@ async function waitForStableOutputFile(server, task) {
 function classifyYtDlpError(task, rawMessage) {
   const debugMessage = String(rawMessage || "").trim();
   const site = siteFamily(task.url);
+  if (isRateLimitedError(debugMessage)) {
+    return ytdlpClassifiedError("rate_limited", "The current server is being rate limited by this site. Try again later, or configure a proxy or cookies.", debugMessage);
+  }
+  if (isPageLoadError(debugMessage)) {
+    return ytdlpClassifiedError("webpage_unavailable", "yt-dlp could not load the page. Check the URL, network, proxy, or cookies.", debugMessage);
+  }
   if (site === "youtube" && isCookieAuthError(debugMessage)) {
     return youtubeCookieRequiredError(debugMessage);
   }
   if (isCookieAuthError(debugMessage)) {
     return ytdlpClassifiedError(siteSpecificCode(site, "cookie_required"), siteCookieRequiredMessage(site), debugMessage);
+  }
+  if (isChallengeOrFormatError(debugMessage)) {
+    return ytdlpClassifiedError("challenge_or_format_failed", "Unable to get downloadable video formats. Update yt-dlp and check that browser simulation dependencies (deno / bun / node) are working.", debugMessage);
   }
   if (isJavaScriptRuntimeError(debugMessage)) {
     return ytdlpClassifiedError("javascript_runtime_missing", "A JavaScript runtime is missing on the server. Install Deno or Node.js, or configure yt-dlp jsRuntimes.", debugMessage);
@@ -520,20 +529,11 @@ function classifyYtDlpError(task, rawMessage) {
   if (isUnsupportedURLError(debugMessage)) {
     return ytdlpClassifiedError("unsupported_url", "yt-dlp does not support this URL.", debugMessage);
   }
-  if (isPageLoadError(debugMessage)) {
-    return ytdlpClassifiedError("page_load_failed", "yt-dlp could not load the page. Check the URL, network, proxy, or cookies.", debugMessage);
-  }
   if (isPrivateOrUnavailableError(debugMessage)) {
-    return ytdlpClassifiedError("private_or_unavailable", "This video is private, unavailable, or requires an account that can access it.", debugMessage);
+    return ytdlpClassifiedError("private_or_permission_required", "This video is private, unavailable, or requires an account with permission to access it.", debugMessage);
   }
   if (isGeoRestrictedError(debugMessage)) {
     return ytdlpClassifiedError("geo_restricted", "This video is not available from the server region. Try a proxy in an allowed region.", debugMessage);
-  }
-  if (isRateLimitedError(debugMessage)) {
-    return ytdlpClassifiedError("rate_limited", "The site is rate limiting requests. Wait a while, or configure cookies and proxy.", debugMessage);
-  }
-  if (isFormatUnavailableError(debugMessage)) {
-    return ytdlpClassifiedError("format_unavailable", "The requested format is not available. Try another format setting.", debugMessage);
   }
   if (isNetworkError(debugMessage)) {
     return ytdlpClassifiedError("network_error", "Network request failed. Check the server network, DNS, proxy, or certificate settings.", debugMessage);
@@ -658,12 +658,18 @@ function isPageLoadError(message) {
 function isPrivateOrUnavailableError(message) {
   const text = String(message || "").toLowerCase();
   return text.includes("private video") ||
+    text.includes("members-only") ||
+    text.includes("members only") ||
+    text.includes("age-restricted") ||
+    text.includes("age restricted") ||
+    text.includes("requires payment") ||
+    text.includes("premium subscribers") ||
+    text.includes("permission to access") ||
     text.includes("video unavailable") ||
     text.includes("this video is unavailable") ||
     text.includes("this content is unavailable") ||
     text.includes("has been removed") ||
-    text.includes("deleted video") ||
-    text.includes("not available");
+    text.includes("deleted video");
 }
 
 function isGeoRestrictedError(message) {
@@ -684,12 +690,18 @@ function isRateLimitedError(message) {
     text.includes("rate-limit");
 }
 
-function isFormatUnavailableError(message) {
+function isChallengeOrFormatError(message) {
   const text = String(message || "").toLowerCase();
-  return text.includes("requested format is not available") ||
+  return text.includes("signature solving failed") ||
+    text.includes("n challenge solving failed") ||
+    text.includes("challenge solving failed") ||
+    text.includes("missing required data sync id") ||
+    text.includes("missing data sync id") ||
+    text.includes("requested format is not available") ||
+    text.includes("only images are available") ||
+    text.includes("some formats may be missing") ||
     text.includes("no video formats found") ||
-    text.includes("no formats found") ||
-    text.includes("requested format is not available");
+    text.includes("no formats found");
 }
 
 function isNetworkError(message) {

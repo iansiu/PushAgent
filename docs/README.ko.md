@@ -151,6 +151,52 @@ YouTube 같은 일부 사이트는 로그인 Cookie가 필요할 수 있습니�
 
 하나의 Netscape Cookie 파일에 여러 도메인의 Cookie를 넣을 수 있으며, yt-dlp는 URL에 맞는 Cookie만 사용합니다. Cookie 파일은 공개하지 마세요.
 
+YouTube는 서명과 `n` challenge를 풀기 위해 yt-dlp의 외부 JavaScript 지원이 필요할 수 있습니다. Deno를 설치하고 현재 shell과 systemd가 모두 찾을 수 있게 만드세요.
+
+```bash
+curl -fsSL https://deno.land/install.sh | sh
+ln -sf /root/.deno/bin/deno /usr/local/bin/deno
+/usr/local/bin/deno --version
+python3 -m pip install -U "yt-dlp[default]"
+apt install -y ffmpeg
+```
+
+YouTube Cookie를 `/root/PushAgent/cookies/youtube.txt` 같은 경로에 업로드한 뒤, 먼저 서버에서 단일 영상 URL을 테스트하세요. `list=`가 포함된 URL이 전체 재생목록으로 확장되지 않도록 `--no-playlist`를 붙입니다.
+
+```bash
+chmod 600 /root/PushAgent/cookies/youtube.txt
+yt-dlp -F \
+  --no-playlist \
+  --cookies /root/PushAgent/cookies/youtube.txt \
+  --remote-components ejs:github \
+  --js-runtimes deno:/usr/local/bin/deno \
+  "https://www.youtube.com/watch?v=VIDEO_ID"
+```
+
+정상이라면 `[jsc:deno] Solving JS challenges using deno`가 출력되고 720p, 1080p 같은 실제 오디오/비디오 형식이 표시됩니다. storyboard 이미지만 보이면 yt-dlp, Deno, EJS 구성 요소를 다시 확인하세요. `HTTP Error 429: Too Many Requests`는 YouTube가 서버 IP를 임시 제한한 상태이므로 잠시 기다리거나 `proxy`를 설정하세요.
+
+테스트에 성공하면 같은 옵션을 yt-dlp 서비스 설정에 넣습니다.
+
+```json
+{
+  "cookiesPath": "/root/PushAgent/cookies/youtube.txt",
+  "requireCookiesForYoutube": true,
+  "noPlaylist": true,
+  "extraArgs": [
+    "--remote-components",
+    "ejs:github",
+    "--js-runtimes",
+    "deno:/usr/local/bin/deno"
+  ]
+}
+```
+
+설정을 바꾼 뒤 Agent를 재시작하세요.
+
+```bash
+systemctl restart pushagent
+```
+
 ### 4. Agent 페어링 코드 생성
 
 QiuyuRemote에서:

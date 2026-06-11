@@ -151,6 +151,52 @@ yt-dlp:
 
 Один файл cookies может содержать cookies для нескольких доменов. yt-dlp использует только cookies, подходящие к URL. Не публикуйте этот файл.
 
+YouTube также может требовать внешнюю JavaScript-поддержку yt-dlp для решения signature и `n` challenge. Установите Deno и сделайте его доступным и для текущего shell, и для systemd:
+
+```bash
+curl -fsSL https://deno.land/install.sh | sh
+ln -sf /root/.deno/bin/deno /usr/local/bin/deno
+/usr/local/bin/deno --version
+python3 -m pip install -U "yt-dlp[default]"
+apt install -y ffmpeg
+```
+
+Загрузите YouTube cookies, например в `/root/PushAgent/cookies/youtube.txt`, и сначала проверьте один видео-URL прямо на сервере. Добавляйте `--no-playlist`, чтобы URL с `list=` не разворачивался в загрузку всего плейлиста.
+
+```bash
+chmod 600 /root/PushAgent/cookies/youtube.txt
+yt-dlp -F \
+  --no-playlist \
+  --cookies /root/PushAgent/cookies/youtube.txt \
+  --remote-components ejs:github \
+  --js-runtimes deno:/usr/local/bin/deno \
+  "https://www.youtube.com/watch?v=VIDEO_ID"
+```
+
+В норме вывод содержит `[jsc:deno] Solving JS challenges using deno` и реальные audio/video formats, например 720p или 1080p. Если видны только storyboard images, проверьте yt-dlp, Deno и EJS-компоненты. `HTTP Error 429: Too Many Requests` означает временный rate limit для IP сервера; подождите или настройте `proxy`.
+
+После успешного теста добавьте те же параметры в конфиг сервиса yt-dlp:
+
+```json
+{
+  "cookiesPath": "/root/PushAgent/cookies/youtube.txt",
+  "requireCookiesForYoutube": true,
+  "noPlaylist": true,
+  "extraArgs": [
+    "--remote-components",
+    "ejs:github",
+    "--js-runtimes",
+    "deno:/usr/local/bin/deno"
+  ]
+}
+```
+
+После изменения конфига перезапустите Agent:
+
+```bash
+systemctl restart pushagent
+```
+
 ### 4. Создание кода привязки Agent
 
 В QiuyuRemote:
