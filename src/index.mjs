@@ -1,14 +1,28 @@
 import http from "node:http";
+import { TextDecoder } from "node:util";
 import { Aria2EventClient, aria2WebSocketURL } from "./aria2-events.mjs";
 import { loadConfig } from "./config.mjs";
 import { JSONStore } from "./store.mjs";
 import { diagnoseServer, fallbackAria2EventTask, fetchAria2TaskByGid, fetchTasks } from "./download-clients.mjs";
 import { RelayClient } from "./relay-client.mjs";
 import { AGENT_WEB_UI_HTML } from "./web-ui.mjs";
-import { addYtDlpTask, fetchYtDlpTasks, pauseYtDlpTask, removeYtDlpTask, resumeYtDlpTask, setYtDlpTaskEventHandler } from "./ytdlp-service.mjs";
+import {
+  addYtDlpTask,
+  appendYtDlpCookieFile,
+  deleteYtDlpCookieFile,
+  fetchYtDlpTasks,
+  listYtDlpCookies,
+  pauseYtDlpTask,
+  removeYtDlpTask,
+  resumeYtDlpTask,
+  saveYtDlpCookieFile,
+  setYtDlpTaskEventHandler
+} from "./ytdlp-service.mjs";
 import { checkForUpdate, publicAppInfo } from "./version.mjs";
 
 const MAX_AGENT_BODY_BYTES = 128 * 1024;
+const MAX_AGENT_COOKIE_BODY_BYTES = 2 * 1024 * 1024;
+const UTF8_TEXT_DECODER = new TextDecoder("utf-8", { fatal: true });
 
 const config = loadConfig();
 const store = new JSONStore(config.dataDir);
@@ -157,59 +171,109 @@ function startServer() {
           servers: results
         });
       }
-      if (request.method === "GET" && request.url === "/v1/ytdlp/diagnostics") {
-        const server = firstYtDlpServer();
+      if (request.method === "GET" && requestPath(request) === "/v1/ytdlp/diagnostics") {
+        const selected = ytdlpServerForRequest(request);
+        const server = selected.server;
         if (!server) {
-          return sendJSON(response, 404, { ok: false, message: "yt-dlp service is not enabled in Agent config." });
+          return sendJSON(response, selected.status || 404, { ok: false, message: selected.message });
         }
         const result = await diagnoseConfiguredServer(server);
         return sendJSON(response, 200, { ok: result.ok, ...result });
       }
-      if (request.method === "GET" && request.url === "/v1/ytdlp/tasks") {
-        const server = firstYtDlpServer();
+      if (request.method === "GET" && requestPath(request) === "/v1/ytdlp/cookies") {
+        const selected = ytdlpServerForRequest(request);
+        const server = selected.server;
         if (!server) {
-          return sendJSON(response, 404, { ok: false, message: "yt-dlp service is not enabled in Agent config." });
+          return sendJSON(response, selected.status || 404, { ok: false, message: selected.message });
+        }
+        return sendJSON(response, 200, { ok: true, sites: listYtDlpCookies(server) });
+      }
+      if (request.method === "PUT" && requestPath(request).startsWith("/v1/ytdlp/cookies/")) {
+        const selected = ytdlpServerForRequest(request);
+        const server = selected.server;
+        if (!server) {
+          return sendJSON(response, selected.status || 404, { ok: false, message: selected.message });
+        }
+        const siteId = decodeURIComponent(requestPath(request).slice("/v1/ytdlp/cookies/".length));
+        const content = await readText(request, MAX_AGENT_COOKIE_BODY_BYTES);
+        const site = saveYtDlpCookieFile(server, siteId, content);
+        recordRuntimeEvent("ytdlp_cookie_saved", `${server.name || server.id}: ${site.name} cookie updated.`, "info");
+        return sendJSON(response, 200, { ok: true, site });
+      }
+      if (request.method === "POST" && requestPath(request).startsWith("/v1/ytdlp/cookies/") && requestPath(request).endsWith("/append")) {
+        const selected = ytdlpServerForRequest(request);
+        const server = selected.server;
+        if (!server) {
+          return sendJSON(response, selected.status || 404, { ok: false, message: selected.message });
+        }
+        const pathname = requestPath(request);
+        const siteId = decodeURIComponent(pathname.slice("/v1/ytdlp/cookies/".length, -"/append".length));
+        const content = await readText(request, MAX_AGENT_COOKIE_BODY_BYTES);
+        const site = appendYtDlpCookieFile(server, siteId, content);
+        recordRuntimeEvent("ytdlp_cookie_appended", `${server.name || server.id}: ${site.name} cookie appended.`, "info");
+        return sendJSON(response, 200, { ok: true, site });
+      }
+      if (request.method === "DELETE" && requestPath(request).startsWith("/v1/ytdlp/cookies/")) {
+        const selected = ytdlpServerForRequest(request);
+        const server = selected.server;
+        if (!server) {
+          return sendJSON(response, selected.status || 404, { ok: false, message: selected.message });
+        }
+        const siteId = decodeURIComponent(requestPath(request).slice("/v1/ytdlp/cookies/".length));
+        const site = deleteYtDlpCookieFile(server, siteId);
+        recordRuntimeEvent("ytdlp_cookie_removed", `${server.name || server.id}: ${site.name} cookie removed.`, "info");
+        return sendJSON(response, 200, { ok: true, site });
+      }
+      if (request.method === "GET" && requestPath(request) === "/v1/ytdlp/tasks") {
+        const selected = ytdlpServerForRequest(request);
+        const server = selected.server;
+        if (!server) {
+          return sendJSON(response, selected.status || 404, { ok: false, message: selected.message });
         }
         return sendJSON(response, 200, { ok: true, tasks: fetchYtDlpTasks(server) });
       }
-      if (request.method === "POST" && request.url === "/v1/ytdlp/tasks") {
-        const server = firstYtDlpServer();
+      if (request.method === "POST" && requestPath(request) === "/v1/ytdlp/tasks") {
+        const selected = ytdlpServerForRequest(request);
+        const server = selected.server;
         if (!server) {
-          return sendJSON(response, 404, { ok: false, message: "yt-dlp service is not enabled in Agent config." });
+          return sendJSON(response, selected.status || 404, { ok: false, message: selected.message });
         }
         const payload = await readJSON(request);
         const task = addYtDlpTask(server, payload);
         recordRuntimeEvent("ytdlp_task_added", `${server.name || server.id}: ${task.name}`, "info");
         return sendJSON(response, 200, { ok: true, task });
       }
-      if (request.method === "POST" && request.url?.startsWith("/v1/ytdlp/tasks/") && request.url.endsWith("/pause")) {
-        const server = firstYtDlpServer();
+      if (request.method === "POST" && requestPath(request).startsWith("/v1/ytdlp/tasks/") && requestPath(request).endsWith("/pause")) {
+        const selected = ytdlpServerForRequest(request);
+        const server = selected.server;
         if (!server) {
-          return sendJSON(response, 404, { ok: false, message: "yt-dlp service is not enabled in Agent config." });
+          return sendJSON(response, selected.status || 404, { ok: false, message: selected.message });
         }
-        const taskId = decodeURIComponent(request.url.slice("/v1/ytdlp/tasks/".length, -"/pause".length));
+        const taskId = decodeURIComponent(requestPath(request).slice("/v1/ytdlp/tasks/".length, -"/pause".length));
         const task = pauseYtDlpTask(server, taskId);
         return task
           ? sendJSON(response, 200, { ok: true, task })
           : sendJSON(response, 404, { ok: false, message: "yt-dlp task not found." });
       }
-      if (request.method === "POST" && request.url?.startsWith("/v1/ytdlp/tasks/") && request.url.endsWith("/resume")) {
-        const server = firstYtDlpServer();
+      if (request.method === "POST" && requestPath(request).startsWith("/v1/ytdlp/tasks/") && requestPath(request).endsWith("/resume")) {
+        const selected = ytdlpServerForRequest(request);
+        const server = selected.server;
         if (!server) {
-          return sendJSON(response, 404, { ok: false, message: "yt-dlp service is not enabled in Agent config." });
+          return sendJSON(response, selected.status || 404, { ok: false, message: selected.message });
         }
-        const taskId = decodeURIComponent(request.url.slice("/v1/ytdlp/tasks/".length, -"/resume".length));
+        const taskId = decodeURIComponent(requestPath(request).slice("/v1/ytdlp/tasks/".length, -"/resume".length));
         const task = resumeYtDlpTask(server, taskId);
         return task
           ? sendJSON(response, 200, { ok: true, task })
           : sendJSON(response, 404, { ok: false, message: "yt-dlp task not found." });
       }
-      if (request.method === "DELETE" && request.url?.startsWith("/v1/ytdlp/tasks/")) {
-        const server = firstYtDlpServer();
+      if (request.method === "DELETE" && requestPath(request).startsWith("/v1/ytdlp/tasks/")) {
+        const selected = ytdlpServerForRequest(request);
+        const server = selected.server;
         if (!server) {
-          return sendJSON(response, 404, { ok: false, message: "yt-dlp service is not enabled in Agent config." });
+          return sendJSON(response, selected.status || 404, { ok: false, message: selected.message });
         }
-        const url = new URL(request.url, "http://127.0.0.1");
+        const url = requestURL(request);
         const taskId = decodeURIComponent(url.pathname.slice("/v1/ytdlp/tasks/".length));
         const result = removeYtDlpTask(server, taskId, {
           deleteFiles: isTruthyQueryValue(url.searchParams.get("deleteData") || url.searchParams.get("deleteFiles"))
@@ -271,24 +335,72 @@ function startServer() {
 }
 
 function firstYtDlpServer() {
-  return config.servers.find((server) => server.type === "ytdlp" || server.type === "yt-dlp") || null;
+  return ytdlpServers()[0] || null;
+}
+
+function ytdlpServers() {
+  return config.servers.filter((server) => server.type === "ytdlp" || server.type === "yt-dlp");
+}
+
+function ytdlpServerForRequest(request) {
+  const servers = ytdlpServers();
+  if (!servers.length) {
+    return { server: null, status: 404, message: "yt-dlp service is not enabled in Agent config." };
+  }
+  const url = requestURL(request);
+  const selector = firstNonEmpty(
+    url.searchParams.get("server"),
+    url.searchParams.get("serverId"),
+    url.searchParams.get("ytdlpServer"),
+    url.searchParams.get("endpoint"),
+    url.searchParams.get("baseUrl")
+  );
+  if (!selector) {
+    return { server: servers[0] };
+  }
+  const matches = matchingYtDlpServers(selector);
+  if (!matches.length) {
+    return { server: null, status: 404, message: `Unknown yt-dlp server: ${selector}` };
+  }
+  return { server: matches[0] };
+}
+
+function requestURL(request) {
+  return new URL(request.url || "/", "http://127.0.0.1");
+}
+
+function requestPath(request) {
+  return requestURL(request).pathname;
+}
+
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    const text = String(value || "").trim();
+    if (text) return text;
+  }
+  return "";
 }
 
 async function pairOnStartup() {
   if (relay.staticIdentity) {
     store.setRelayIdentity(relay.staticIdentity);
     console.log(`Push Agent is using static Relay identity ${relay.staticIdentity.agentId}.`);
-    if (!config.pairingCodes.length) {
-      return;
+    if (config.pairingCodes.length) {
+      const message = "Push Agent ignored configured pairing code(s) because static Relay identity is already set.";
+      console.warn(message);
+      recordRuntimeEvent("pairing_codes_ignored", message, "warn");
     }
-  }
-  const savedIdentity = store.getRelayIdentity();
-  if (savedIdentity && !config.pairingCodes.length) {
-    console.log(`Push Agent is using saved Relay identity ${savedIdentity.agentId}.`);
     return;
   }
+  const savedIdentity = store.getRelayIdentity();
   if (savedIdentity) {
     console.log(`Push Agent is using saved Relay identity ${savedIdentity.agentId}.`);
+    if (config.pairingCodes.length) {
+      const message = "Push Agent ignored configured pairing code(s) because saved Relay identity already exists.";
+      console.warn(message);
+      recordRuntimeEvent("pairing_codes_ignored", message, "warn");
+    }
+    return;
   }
   if (!config.pairingCodes.length) {
     const message = "Push Agent is not paired with Push Relay. Generate a pairing code in QiuyuRemote settings.";
@@ -341,12 +453,30 @@ async function pairWithRelay({ pairingCode, agentName }) {
   }
   try {
     const currentIdentity = relayIdentity();
-    const response = await relay.pair({
-      pairingCode: code,
-      agentName: agentName || config.agentName,
-      identity: currentIdentity
-    });
-    if (currentIdentity?.agentId && response.agentId && response.agentId !== currentIdentity.agentId) {
+    const resolvedAgentName = agentName || config.agentName;
+    let response;
+    let recoveredMissingIdentity = false;
+    try {
+      response = await relay.pair({
+        pairingCode: code,
+        agentName: resolvedAgentName,
+        identity: currentIdentity
+      });
+    } catch (error) {
+      if (!currentIdentity?.agentId || !isUnknownAgentMessage(error.message, error.statusCode)) {
+        throw error;
+      }
+      const message = `Saved Relay identity ${currentIdentity.agentId} is no longer known by Push Relay. Retrying pairing with a fresh Relay identity.`;
+      console.warn(message);
+      recordRuntimeEvent("relay_identity_missing", message, "warn");
+      response = await relay.pair({
+        pairingCode: code,
+        agentName: resolvedAgentName,
+        identity: null
+      });
+      recoveredMissingIdentity = true;
+    }
+    if (currentIdentity?.agentId && response.agentId && response.agentId !== currentIdentity.agentId && !recoveredMissingIdentity) {
       return {
         ok: false,
         status: 409,
@@ -357,10 +487,16 @@ async function pairWithRelay({ pairingCode, agentName }) {
       agentId: response.agentId,
       secret: response.secret,
       source: "pairing",
-      agentName: agentName || config.agentName,
+      agentName: resolvedAgentName,
       relayBaseURL: response.relayBaseURL || ""
     });
-    return { ok: true, identity };
+    return {
+      ok: true,
+      identity,
+      message: recoveredMissingIdentity
+        ? "Saved Relay identity was no longer known by Push Relay, so the Agent paired again with a fresh identity."
+        : response.message
+    };
   } catch (error) {
     const message = error.message || "Relay pairing failed.";
     return {
@@ -377,16 +513,54 @@ function isUsedPairingCodeMessage(message) {
   return /already\s+used|was\s+already\s+used|已.*使用/i.test(String(message || ""));
 }
 
+function isUnknownAgentMessage(message, statusCode) {
+  return Number(statusCode) === 403 && /unknown agent/i.test(String(message || ""));
+}
+
 function matchingServers(value) {
   const target = String(value || "").trim().toLowerCase();
   if (!target) {
     return [];
   }
   return config.servers.filter((server) => {
-    return [server.id, server.name, server.type]
-      .map((item) => String(item || "").trim().toLowerCase())
-      .some((item) => item === target);
+    return serverMatchesSelector(server, target);
   });
+}
+
+function matchingYtDlpServers(value) {
+  const target = String(value || "").trim().toLowerCase();
+  if (!target) return [];
+  return ytdlpServers().filter((server) => serverMatchesSelector(server, target));
+}
+
+function serverMatchesSelector(server, target) {
+  const normalizedTarget = normalizedSelectorValue(target);
+  return [
+    server.id,
+    server.name,
+    server.type,
+    server.storageKey,
+    server.identityKey,
+    server.baseUrl,
+    server.endpoint,
+    server.downloadDir
+  ]
+    .map((item) => normalizedSelectorValue(item))
+    .some((item) => item && (item === normalizedTarget || item.toLowerCase() === target));
+}
+
+function normalizedSelectorValue(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    url.hash = "";
+    url.hostname = url.hostname.toLowerCase();
+    url.pathname = url.pathname.replace(/\/+$/, "");
+    return url.toString().replace(/\/+$/, "").toLowerCase();
+  } catch {
+    return raw.replace(/\/+$/, "").toLowerCase();
+  }
 }
 
 function startMonitor() {
@@ -789,15 +963,18 @@ function resolvedStopNoticeState(task, previous) {
 
   const locked = normalizeStopNotice(previous?.stopNotice);
   if (locked) {
-    return stopNoticeFields(locked);
+    if (locked.kind === "manual" || locked.freshUntil || stopNoticeIsFresh(locked) || sameStopNotice(candidate, locked)) {
+      return stopNoticeFields(locked);
+    }
+    return stopNoticeFields(lockStopNotice({ kind: "manual", value: "" }));
   }
 
   const pending = normalizeStopNotice(previous?.pendingStopNotice);
-  if (pending) {
+  if (pending && stopNoticeIsFresh(pending)) {
     return stopNoticeFields(lockStopNotice(pending));
   }
 
-  if (candidate) {
+  if (candidate && stopNoticeIsFresh(candidate)) {
     return stopNoticeFields(lockStopNotice(candidate));
   }
 
@@ -827,7 +1004,9 @@ function normalizeStopNotice(value) {
     kind,
     value: String(value.value || ""),
     observedAt: value.observedAt || "",
-    lockedAt: value.lockedAt || ""
+    lockedAt: value.lockedAt || "",
+    triggeredAt: value.triggeredAt || "",
+    freshUntil: value.freshUntil || ""
   };
 }
 
@@ -843,8 +1022,26 @@ function lockStopNotice(notice) {
     kind: notice.kind,
     value: String(notice.value || ""),
     observedAt: notice.observedAt || "",
-    lockedAt: notice.lockedAt || new Date().toISOString()
+    lockedAt: notice.lockedAt || new Date().toISOString(),
+    triggeredAt: notice.triggeredAt || "",
+    freshUntil: notice.freshUntil || ""
   };
+}
+
+function stopNoticeIsFresh(notice) {
+  const freshUntil = Date.parse(notice?.freshUntil || "");
+  if (Number.isFinite(freshUntil)) {
+    return Date.now() <= freshUntil;
+  }
+  const observedAt = Date.parse(notice?.observedAt || "");
+  if (Number.isFinite(observedAt)) {
+    return Date.now() - observedAt <= automaticStopPendingFreshnessMs();
+  }
+  return true;
+}
+
+function automaticStopPendingFreshnessMs() {
+  return 10 * 60 * 1000;
 }
 
 function stopNoticeFields(notice) {
@@ -875,6 +1072,9 @@ function stopNoticeMessage(notice) {
 }
 
 function shouldSendTaskStoppedNotice(next, previous, previousLastEventStatus) {
+  if (isCompletedTask(next) || previousLastEventStatus === "completed") {
+    return false;
+  }
   const notice = normalizeStopNotice(next.stopNotice);
   if (!notice || notice.kind === "manual") {
     return false;
@@ -884,6 +1084,15 @@ function shouldSendTaskStoppedNotice(next, previous, previousLastEventStatus) {
   }
   const previousNotice = normalizeStopNotice(previous?.stopNotice);
   return !sameStopNotice(previousNotice, notice);
+}
+
+function isCompletedTask(task) {
+  const status = String(task?.status || "").toLowerCase();
+  if (status === "completed" || status === "complete") {
+    return true;
+  }
+  const progress = finiteNumber(task?.progress, 0);
+  return progress >= 1;
 }
 
 function stopNoticeEventStatus(notice) {
@@ -1160,17 +1369,39 @@ function isLocalRequest(request) {
 }
 
 async function readJSON(request) {
+  const text = await readText(request, MAX_AGENT_BODY_BYTES);
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    const error = new Error("Request body must be valid JSON.");
+    error.statusCode = 400;
+    error.code = "invalid_json";
+    throw error;
+  }
+}
+
+async function readText(request, maxBytes = MAX_AGENT_BODY_BYTES) {
   const chunks = [];
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > MAX_AGENT_BODY_BYTES) {
-      throw new Error("Request body is too large.");
+    if (size > maxBytes) {
+      const error = new Error("Request body is too large.");
+      error.statusCode = 413;
+      error.code = "request_body_too_large";
+      throw error;
     }
     chunks.push(chunk);
   }
-  const text = Buffer.concat(chunks).toString("utf8");
-  return text ? JSON.parse(text) : {};
+  try {
+    return UTF8_TEXT_DECODER.decode(Buffer.concat(chunks));
+  } catch {
+    const error = new Error("Request body must be UTF-8 text.");
+    error.statusCode = 400;
+    error.code = "request_body_invalid_utf8";
+    throw error;
+  }
 }
 
 function sendJSON(response, statusCode, value) {

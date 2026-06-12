@@ -4,6 +4,8 @@
 
 공개 저장소: <https://github.com/iansiu/PushAgent>
 
+App 가이드: [QiuyuRemote App 가이드](APP_GUIDE.ko.md)
+
 Push Agent는 다운로드 서버에서 실행되며 qBittorrent, Transmission, aria2, 선택적으로 yt-dlp 작업을 감시합니다. 다운로드 완료, 실패, 장시간 데이터 없음, 서버 오프라인/복구 이벤트를 Qiuyu's Push Relay로 보내고 QiuyuRemote는 이를 시스템 알림으로 표시합니다.
 
 Push Agent는 가볍게 설계되어 있습니다.
@@ -19,6 +21,28 @@ https://push1.qiuyu.org
 ```
 
 `push1.qiuyu.org`는 기본 Relay를 사용할 수 없을 때만 사용하는 백업 주소입니다.
+
+## Push Agent가 꼭 필요한가요?
+
+필수는 아닙니다. QiuyuRemote는 Push Agent 없이도 사용할 수 있습니다. 기존 qBittorrent, Transmission, aria2 서버를 관리하기만 한다면 앱이 각 서비스의 Web API 또는 RPC 엔드포인트에 직접 연결합니다.
+
+Push Agent는 앱만으로 백그라운드에서 안정적으로 처리하기 어려운 기능을 위한 선택적 서버 구성 요소입니다.
+
+| 기능 | Push Agent 필요 여부 |
+| --- | --- |
+| qBittorrent, Transmission, aria2 작업 관리 | 필요 없음 |
+| qBittorrent, Transmission, aria2 작업 추가, 일시 정지, 재개, 삭제, 속도 제한, 상세 보기 | 필요 없음 |
+| WebDAV 파일 탐색 및 재생 | 필요 없음. 단, WebDAV는 별도로 설정해야 함 |
+| QiuyuRemote 로컬 오프라인 다운로드 | 필요 없음 |
+| 로컬 오프라인 다운로드 알림 | 필요 없음. QiuyuRemote가 로컬로 예약함 |
+| 원격 다운로드 완료 또는 실패 알림 | 필요 |
+| 장시간 데이터가 없는 작업 알림 | 필요 |
+| 다운로드 서버 오프라인 또는 복구 알림 | 필요 |
+| yt-dlp 다운로드 | 필요 |
+| yt-dlp Cookie 관리 | 필요 |
+| YouTube, TikTok 등 URL을 QiuyuRemote로 공유해 원격 다운로드 | 필요. yt-dlp Push Agent 설정 필요 |
+
+정리하면 Push Agent는 QiuyuRemote 사용을 시작하기 위한 필수 조건이 아닙니다. 서버 측 모니터링, 푸시 알림, yt-dlp를 위한 확장 기능입니다.
 
 ## 빠른 시작
 
@@ -128,6 +152,8 @@ yt-dlp:
   "binaryPath": "yt-dlp",
   "ffmpegPath": "ffmpeg",
   "downloadDir": "./data/yt-dlp-downloads",
+  "storageKey": "default",
+  "statePath": "./data/yt-dlp-tasks/default.json",
   "format": "bv*+ba/b",
   "outputTemplate": "%(title).80B.%(ext)s",
   "cookiesPath": "",
@@ -135,6 +161,7 @@ yt-dlp:
   "requireCookiesForYoutube": false,
   "cleanHashtags": true,
   "maxConcurrent": 10,
+  "historyLimit": 1000,
   "noPlaylist": true,
   "restrictFilenames": false,
   "extraArgs": []
@@ -289,6 +316,10 @@ curl -X POST http://127.0.0.1:8765/v1/agent/pair \
 
 같은 설정에 중복된 코드는 건너뜁니다. 사용됨, 만료됨, 취소됨 상태의 코드는 터미널과 Web 콘솔 이벤트 목록에 명확히 표시됩니다.
 
+`data/relay-identity.json`에 저장된 Relay identity가 Push Relay에 더 이상 없으면, Agent Web 콘솔의 수동 pairing은 오래된 identity 없이 한 번 다시 시도하고 Relay가 반환한 새 Agent ID를 저장합니다. 일반적인 경우에는 Relay가 저장된 유효 identity와 다른 Agent ID를 반환해도 Agent가 조용히 바꾸지 않습니다.
+
+하나의 Agent에 활성화된 yt-dlp 서비스가 여러 개 있으면 query가 없는 기존 요청은 계속 첫 번째 활성 yt-dlp를 사용합니다. 여러 yt-dlp를 분리하려면 QiuyuRemote 경로를 `v1/ytdlp?server=<id-or-name>`로 설정하세요. selector는 Agent Web 콘솔에 표시되는 서비스 `id`, `name`, `storageKey`, endpoint 또는 base URL일 수 있습니다.
+
 ## API Key
 
 `apiKey`는 Agent의 로컬 관리 API와 Web 콘솔 작업을 보호합니다.
@@ -401,6 +432,9 @@ Push Relay가 이벤트를 받았지만 알림을 받을 기기가 0대인 경�
 | `servers[].binaryPath` | yt-dlp 전용입니다. 명령 이름 또는 절대 경로입니다. 기본값은 `yt-dlp`입니다. |
 | `servers[].ffmpegPath` | yt-dlp 전용입니다. ffmpeg 명령 이름 또는 절대 경로입니다. 기본값은 `ffmpeg`입니다. |
 | `servers[].downloadDir` | yt-dlp 전용입니다. 기본 저장 디렉터리입니다. QiuyuRemote에서 작업별로 입력한 디렉터리가 우선합니다. |
+| `servers[].storageKey` | yt-dlp 전용입니다. 작업 기록과 사이트 Cookie 저장에 사용하는 안정적인 key입니다. 업그레이드하거나 저장 디렉터리를 바꿔도 변경하지 마세요. |
+| `servers[].statePath` | yt-dlp 전용입니다. 작업 기록 JSON 파일 경로입니다. 기본값은 `data/yt-dlp-tasks/<storageKey>.json`입니다. |
+| `servers[].historyLimit` | yt-dlp 전용입니다. Push Agent가 보관하는 작업 기록 수입니다. 기본값은 `1000`입니다. |
 | `servers[].format` | yt-dlp 전용입니다. 기본 format selector입니다. |
 | `servers[].outputTemplate` | yt-dlp 전용입니다. 출력 파일명 템플릿입니다. 기본값은 `%(title).80B.%(ext)s`로 제목을 짧게 유지합니다. |
 | `servers[].cookiesPath` | yt-dlp 전용입니다. 로그인 Cookie가 필요한 사이트용 Cookie 파일 경로입니다. |

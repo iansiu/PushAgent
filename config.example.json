@@ -55,6 +55,8 @@
       "binaryPath": "yt-dlp",
       "ffmpegPath": "ffmpeg",
       "downloadDir": "./data/yt-dlp-downloads",
+      "storageKey": "default",
+      "statePath": "./data/yt-dlp-tasks/default.json",
       "format": "bv*+ba/b",
       "outputTemplate": "%(title).80B.%(ext)s",
       "cookiesPath": "",
@@ -62,6 +64,7 @@
       "requireCookiesForYoutube": false,
       "cleanHashtags": true,
       "maxConcurrent": 10,
+      "historyLimit": 1000,
       "noPlaylist": true,
       "restrictFilenames": false,
       "extraArgs": []

@@ -4,6 +4,8 @@
 
 公開リポジトリ：<https://github.com/iansiu/PushAgent>
 
+App ガイド：[QiuyuRemote App ガイド](APP_GUIDE.ja.md)
+
 Push Agent はダウンロードサーバー上で動作し、qBittorrent、Transmission、aria2、任意の yt-dlp タスクを監視します。ダウンロード完了、失敗、長時間データが流れていない状態、サーバーのオフライン/復帰などのイベントを Qiuyu's Push Relay に送信し、QiuyuRemote 側でシステム通知を表示します。
 
 Push Agent は軽量です。
@@ -19,6 +21,28 @@ https://push1.qiuyu.org
 ```
 
 `push1.qiuyu.org` はプライマリ Relay が利用できない場合のフォールバックです。通常の利用では Relay URL を変更する必要はありません。
+
+## Push Agent は必要ですか？
+
+必須ではありません。QiuyuRemote は Push Agent なしでも使えます。既存の qBittorrent、Transmission、aria2 を管理するだけなら、アプリはそれぞれの Web API または RPC エンドポイントへ直接接続します。
+
+Push Agent は、アプリ単体ではバックグラウンドで安定して実行できない機能のための任意のサーバー側コンポーネントです。
+
+| 機能 | Push Agent が必要か |
+| --- | --- |
+| qBittorrent、Transmission、aria2 のタスク管理 | 不要 |
+| qBittorrent、Transmission、aria2 タスクの追加、停止、再開、削除、速度制限、詳細表示 | 不要 |
+| WebDAV のファイル閲覧と再生 | 不要。ただし WebDAV の設定は別途必要 |
+| QiuyuRemote のローカルオフラインダウンロード | 不要 |
+| ローカルオフラインダウンロード通知 | 不要。QiuyuRemote がローカルで通知を予約します |
+| リモートダウンロード完了または失敗通知 | 必要 |
+| 長時間データが流れていないタスクの通知 | 必要 |
+| ダウンロードサーバーのオフラインまたは復帰通知 | 必要 |
+| yt-dlp ダウンロード | 必要 |
+| yt-dlp Cookie 管理 | 必要 |
+| YouTube、TikTok などの URL を QiuyuRemote に共有してリモートダウンロード | 必要。yt-dlp Push Agent の設定が必要です |
+
+つまり、Push Agent は QiuyuRemote を使い始めるための必須条件ではありません。サーバー側監視、プッシュ通知、yt-dlp のための拡張機能です。
 
 ## クイックスタート
 
@@ -128,6 +152,8 @@ yt-dlp:
   "binaryPath": "yt-dlp",
   "ffmpegPath": "ffmpeg",
   "downloadDir": "./data/yt-dlp-downloads",
+  "storageKey": "default",
+  "statePath": "./data/yt-dlp-tasks/default.json",
   "format": "bv*+ba/b",
   "outputTemplate": "%(title).80B.%(ext)s",
   "cookiesPath": "",
@@ -135,6 +161,7 @@ yt-dlp:
   "requireCookiesForYoutube": false,
   "cleanHashtags": true,
   "maxConcurrent": 10,
+  "historyLimit": 1000,
   "noPlaylist": true,
   "restrictFilenames": false,
   "extraArgs": []
@@ -289,6 +316,10 @@ curl -X POST http://127.0.0.1:8765/v1/agent/pair \
 
 同じ設定内の重複コードはスキップされます。使用済み、期限切れ、取り消し済みのコードは、ターミナルと Web コンソールのイベント一覧に表示されます。
 
+`data/relay-identity.json` に保存された Relay identity が Push Relay 側に存在しない場合、Agent Web コンソールで手動ペアリングすると、古い identity を使わずに一度だけ再試行し、Relay が返した新しい Agent ID を保存します。通常は、Relay が保存済みの有効な Agent identity と異なる Agent ID を返した場合、Agent は静かに置き換えません。
+
+1 つの Agent に有効な yt-dlp サービスが複数ある場合、query のない古いリクエストは引き続き最初の有効な yt-dlp を使います。分離したい場合は、QiuyuRemote のパスを `v1/ytdlp?server=<id-or-name>` にしてください。selector には Agent Web コンソールに表示されるサービス `id`、`name`、`storageKey`、endpoint、base URL を指定できます。
+
 ## API Key
 
 `apiKey` は Agent のローカル管理 API と Web コンソール操作を保護します。
@@ -401,6 +432,9 @@ Push Relay がイベントを受け付けても通知を受け取るデバイス
 | `servers[].binaryPath` | yt-dlp のみ。コマンド名または絶対パス。既定は `yt-dlp`。 |
 | `servers[].ffmpegPath` | yt-dlp のみ。ffmpeg のコマンド名または絶対パス。既定は `ffmpeg`。 |
 | `servers[].downloadDir` | yt-dlp のみ。既定の保存先。QiuyuRemote のタスクごとの保存先が優先されます。 |
+| `servers[].storageKey` | yt-dlp のみ。タスク履歴とサイト Cookie 保存に使う安定した key。アップグレードや保存先変更後も変えないでください。 |
+| `servers[].statePath` | yt-dlp のみ。タスク履歴 JSON ファイルのパス。既定は `data/yt-dlp-tasks/<storageKey>.json` です。 |
+| `servers[].historyLimit` | yt-dlp のみ。Push Agent が保持するタスク履歴数。既定は `1000` です。 |
 | `servers[].format` | yt-dlp のみ。既定の format selector。 |
 | `servers[].outputTemplate` | yt-dlp のみ。出力ファイル名テンプレート。既定では `%(title).80B.%(ext)s` を使いタイトルを短くします。 |
 | `servers[].cookiesPath` | yt-dlp のみ。ログイン Cookie が必要なサイト用の Cookie ファイルパス。 |

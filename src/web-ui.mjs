@@ -1605,6 +1605,7 @@ export const AGENT_WEB_UI_HTML = `<!doctype html>
     elements.languageSelect.value = state.language;
     elements.themeSelect.value = state.theme;
     elements.apiKey.value = state.apiKey;
+    localStorage.removeItem("qiuyuAgentApiKey");
     elements.agentName.value = t("agentNamePlaceholder");
     applyTheme();
     applyLanguage();
@@ -1628,7 +1629,7 @@ export const AGENT_WEB_UI_HTML = `<!doctype html>
     elements.saveKeyButton.addEventListener("click", () => {
       state.apiKey = elements.apiKey.value.trim();
       sessionStorage.setItem("qiuyuAgentApiKey", state.apiKey);
-      localStorage.setItem("qiuyuAgentApiKey", state.apiKey);
+      localStorage.removeItem("qiuyuAgentApiKey");
       showMessage(elements.authMessage, state.apiKey ? t("keySaved") : t("keyCleared"), "success");
       refreshState();
     });

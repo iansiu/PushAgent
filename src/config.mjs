@@ -84,35 +84,56 @@ function normalizeServers(value, dataDir) {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value
+  const enabledServers = value
     .filter((server) => server && typeof server === "object")
-    .filter((server) => serverIsEnabled(server.enabled))
-    .map((server) => {
+    .filter((server) => serverIsEnabled(server.enabled));
+  const ytdlpTotal = enabledServers.filter((server) => canonicalServerType(server.type) === "ytdlp").length;
+  const usedYtDlpSlots = new Set();
+  let ytdlpIndex = 0;
+  return enabledServers.map((server) => {
       const type = canonicalServerType(server.type);
+      const ytdlpSlot = type === "ytdlp"
+        ? uniqueYtDlpStorageSlot(ytdlpStorageSlot(server, ytdlpTotal, ytdlpIndex++), usedYtDlpSlots)
+        : "";
       const normalized = {
         ...server,
         id: internalServerId({
           ...server,
           type,
-          identityKey: type === "ytdlp" ? ytdlpIdentityKey(server, dataDir) : ""
+          identityKey: type === "ytdlp" ? ytdlpIdentityKey(server, ytdlpSlot) : ""
         }),
         type,
         name: String(server.name || defaultServerName(type)).trim(),
         enabled: true
       };
       if (type === "ytdlp") {
+        const legacyId = internalServerId({
+          ...server,
+          type,
+          identityKey: legacyYtdlpIdentityKey(server, dataDir)
+        });
         normalized.binaryPath = String(server.binaryPath || "yt-dlp").trim() || "yt-dlp";
         normalized.ffmpegPath = String(server.ffmpegPath || "ffmpeg").trim() || "ffmpeg";
         normalized.downloadDir = path.resolve(server.downloadDir || path.join(dataDir, "yt-dlp-downloads"));
-        normalized.statePath = path.resolve(server.statePath || path.join(dataDir, `yt-dlp-${normalized.id}.json`));
+        normalized.storageKey = ytdlpSlot;
+        normalized.statePath = path.resolve(server.statePath || path.join(dataDir, "yt-dlp-tasks", `${ytdlpSlot}.json`));
+        normalized.legacyStatePaths = uniqueResolvedPaths([
+          path.join(dataDir, `yt-dlp-${legacyId}.json`),
+          path.join(normalized.downloadDir, ".qiuyu-ytdlp-tasks.json")
+        ]).filter((item) => item !== normalized.statePath);
         normalized.cookiesPath = server.cookiesPath ? path.resolve(server.cookiesPath) : "";
+        normalized.cookiesDir = path.resolve(server.cookiesDir || path.join(dataDir, "ytdlp-cookies", ytdlpSlot));
+        normalized.legacyCookiesDirs = uniqueResolvedPaths([
+          path.join(dataDir, "ytdlp-cookies", legacyId),
+          path.join(normalized.downloadDir, ".qiuyu-ytdlp-cookies")
+        ]).filter((item) => item !== normalized.cookiesDir);
         normalized.format = String(server.format || DEFAULT_YTDLP_FORMAT).trim();
         normalized.proxy = String(server.proxy || "").trim();
         normalized.requireCookiesForYoutube = boolean(server.requireCookiesForYoutube, false);
         normalized.outputTemplate = normalizeYtDlpOutputTemplate(server.outputTemplate);
         normalized.cleanHashtags = boolean(server.cleanHashtags, true);
         normalized.maxConcurrent = boundedInteger(server.maxConcurrent, 10, 1, 10);
-        normalized.historyLimit = boundedInteger(server.historyLimit, 300, 20, 5000);
+        normalized.historyLimit = boundedInteger(server.historyLimit, 1000, 20, 5000);
         normalized.noPlaylist = boolean(server.noPlaylist, true);
         normalized.restrictFilenames = boolean(server.restrictFilenames, false);
         normalized.extraArgs = stringArray(server.extraArgs);
@@ -160,10 +181,58 @@ function defaultServerName(type) {
   }
 }
 
-function ytdlpIdentityKey(server, dataDir) {
+function ytdlpIdentityKey(server, storageSlot) {
+  const explicit = String(server.identityKey || server.id || "").trim();
+  if (explicit) return explicit;
+  return `storage:${storageSlot}`;
+}
+
+function legacyYtdlpIdentityKey(server, dataDir) {
   const binaryPath = String(server.binaryPath || "yt-dlp").trim() || "yt-dlp";
   const downloadDir = path.resolve(server.downloadDir || path.join(dataDir, "yt-dlp-downloads"));
   return `${binaryPath}:${downloadDir}`;
+}
+
+function ytdlpStorageSlot(server, total, index) {
+  const explicit = String(server.storageKey || server.historyKey || server.id || server.identityKey || "").trim();
+  if (explicit) return safePathSegment(explicit);
+  if (total <= 1) return "default";
+  const name = String(server.name || "").trim();
+  return safePathSegment(name || `server-${index + 1}`);
+}
+
+function uniqueYtDlpStorageSlot(value, usedSlots) {
+  const base = value || "default";
+  let slot = base;
+  let suffix = 2;
+  while (usedSlots.has(slot)) {
+    slot = `${base}-${suffix++}`;
+  }
+  usedSlots.add(slot);
+  return slot;
+}
+
+function safePathSegment(value) {
+  const raw = String(value || "").trim();
+  const ascii = raw
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  if (ascii) return ascii;
+  return crypto.createHash("sha1").update(raw || "default").digest("hex").slice(0, 10);
+}
+
+function uniqueResolvedPaths(values) {
+  const seen = new Set();
+  const result = [];
+  for (const value of values) {
+    const resolved = path.resolve(String(value || "").trim());
+    if (!resolved || seen.has(resolved)) continue;
+    seen.add(resolved);
+    result.push(resolved);
+  }
+  return result;
 }
 
 function normalizeYtDlpOutputTemplate(value) {

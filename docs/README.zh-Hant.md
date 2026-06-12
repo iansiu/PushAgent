@@ -4,6 +4,8 @@
 
 公開倉庫：<https://github.com/iansiu/PushAgent>
 
+App 使用指南：[QiuyuRemote App 使用指南](APP_GUIDE.zh-Hant.md)
+
 Push Agent 執行在你的下載伺服器上，用來監控 qBittorrent、Transmission、aria2 和可選的 yt-dlp 任務，並將下載完成、下載失敗、任務長時間無資料、伺服器離線/恢復等事件傳送到 Qiuyu's Push Relay。QiuyuRemote 收到事件後會顯示系統通知。
 
 Push Agent 很輕量：
@@ -19,6 +21,28 @@ https://push1.qiuyu.org
 ```
 
 `push1.qiuyu.org` 只會在主 Relay 不可用時作為備用位址。一般使用者不需要自己填寫 Relay 位址。
+
+## 是否必須安裝 Push Agent？
+
+不是必須。QiuyuRemote 不配置 Push Agent 也可以使用。如果你只是想管理既有的 qBittorrent、Transmission 或 aria2，App 會直接連接這些下載服務自己的 Web API 或 RPC 端點。
+
+Push Agent 是可選的伺服器端增強元件，主要用於 App 自己無法穩定在背景完成的功能：
+
+| 功能 | 是否需要 Push Agent |
+| --- | --- |
+| 管理 qBittorrent、Transmission、aria2 任務 | 不需要 |
+| 新增、暫停、繼續、刪除、限速、查看 qBittorrent、Transmission、aria2 任務詳情 | 不需要 |
+| WebDAV 檔案瀏覽與播放 | 不需要，但需要另外配置 WebDAV |
+| QiuyuRemote 本地離線下載 | 不需要 |
+| 本地離線下載通知 | 不需要，由 QiuyuRemote 本地發送 |
+| 遠端下載完成或失敗通知 | 需要 |
+| 長時間無資料任務提醒 | 需要 |
+| 下載伺服器離線或恢復通知 | 需要 |
+| yt-dlp 下載 | 需要 |
+| yt-dlp Cookie 管理 | 需要 |
+| 從 YouTube、TikTok 等 App 分享連結到 QiuyuRemote 後遠端下載 | 需要，需要配置 yt-dlp Push Agent |
+
+簡單說：Push Agent 不是使用 QiuyuRemote 的入門門檻。它主要負責伺服器背景監控、推播通知和 yt-dlp。
 
 ## 快速開始
 
@@ -128,6 +152,8 @@ yt-dlp 範例：
   "binaryPath": "yt-dlp",
   "ffmpegPath": "ffmpeg",
   "downloadDir": "./data/yt-dlp-downloads",
+  "storageKey": "default",
+  "statePath": "./data/yt-dlp-tasks/default.json",
   "format": "bv*+ba/b",
   "outputTemplate": "%(title).80B.%(ext)s",
   "cookiesPath": "",
@@ -135,6 +161,7 @@ yt-dlp 範例：
   "requireCookiesForYoutube": false,
   "cleanHashtags": true,
   "maxConcurrent": 10,
+  "historyLimit": 1000,
   "noPlaylist": true,
   "restrictFilenames": false,
   "extraArgs": []
@@ -291,6 +318,10 @@ curl -X POST http://127.0.0.1:8765/v1/agent/pair \
 
 同一個配置裡重複的配對碼會被略過。已使用、已過期或已撤銷的配對碼會在終端和 Web 控制台事件列表中清楚顯示。
 
+如果 `data/relay-identity.json` 裡保存的 Relay 身份已經不存在於 Push Relay，Agent Web 控制台手動配對時會自動放棄舊身份重試一次，並保存 Relay 返回的新 Agent ID。正常情況下，如果 Relay 返回的 Agent ID 和已保存的有效身份不一致，Agent 仍會拒絕靜默替換。
+
+如果一個 Agent 裡配置了多個啟用的 yt-dlp 服務，舊請求不帶 query 時仍然預設使用第一個啟用的 yt-dlp。需要隔離多個 yt-dlp 時，在 QiuyuRemote 的路徑裡使用 `v1/ytdlp?server=<id或名稱>`；selector 可以是 Agent Web 控制台裡看到的服務 `id`、`name`、`storageKey`、endpoint 或 base URL。
+
 ## API Key
 
 `apiKey` 用來保護 Agent 的本地管理 API 和 Web 控制台操作。
@@ -405,6 +436,9 @@ Agent 會傳送這些事件：
 | `servers[].binaryPath` | 僅 yt-dlp。命令名或絕對路徑，預設 `yt-dlp`。 |
 | `servers[].ffmpegPath` | 僅 yt-dlp。ffmpeg 命令名或絕對路徑，預設 `ffmpeg`。 |
 | `servers[].downloadDir` | 僅 yt-dlp。預設下載目錄。QiuyuRemote 中每個任務填寫的目錄會覆蓋它。 |
+| `servers[].storageKey` | 僅 yt-dlp。任務歷史和站點 Cookie 儲存使用的穩定 key，升級或修改下載目錄時不要隨意改變。 |
+| `servers[].statePath` | 僅 yt-dlp。任務歷史 JSON 檔案路徑。預設是 `data/yt-dlp-tasks/<storageKey>.json`。 |
+| `servers[].historyLimit` | 僅 yt-dlp。Push Agent 保留的任務歷史數量，預設 `1000`。 |
 | `servers[].format` | 僅 yt-dlp。預設格式選擇器。 |
 | `servers[].outputTemplate` | 僅 yt-dlp。輸出檔名範本。預設使用 `%(title).80B.%(ext)s` 縮短標題。 |
 | `servers[].cookiesPath` | 僅 yt-dlp。需要登入 Cookie 的網站可填寫 Cookie 檔案路徑。 |

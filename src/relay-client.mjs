@@ -1,4 +1,7 @@
 import crypto from "node:crypto";
+import { APP_VERSION } from "./version.mjs";
+
+const AGENT_USER_AGENT = `QiuyuRemote-PushAgent/${APP_VERSION}`;
 
 export class RelayClient {
   constructor(relayConfig) {
@@ -9,11 +12,14 @@ export class RelayClient {
   }
 
   async pair({ pairingCode, agentName, identity = this.staticIdentity }) {
-    const body = JSON.stringify({ pairingCode, agentName });
+    const body = JSON.stringify({ pairingCode, agentName, agentVersion: APP_VERSION });
     const preferredBaseURL = normalizeRelayBaseURL(identity?.relayBaseURL || "");
     return this.#withRelayFallback(async (baseURL) => {
       const headers = {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "User-Agent": AGENT_USER_AGENT,
+        "X-Qiuyu-Agent-Version": APP_VERSION,
+        "X-Push-Agent-Version": APP_VERSION
       };
       if (identity?.agentId && identity?.secret) {
         const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -64,6 +70,9 @@ export class RelayClient {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "User-Agent": AGENT_USER_AGENT,
+          "X-Qiuyu-Agent-Version": APP_VERSION,
+          "X-Push-Agent-Version": APP_VERSION,
           "X-Qiuyu-Agent-ID": identity.agentId,
           "X-Qiuyu-Timestamp": timestamp,
           "X-Qiuyu-Nonce": nonce,
@@ -124,6 +133,9 @@ export class RelayClient {
       const signature = hmac(identity.secret, `${timestamp}.${nonce}.${rawBody}`);
       const headers = {
         "Accept": "application/json",
+        "User-Agent": AGENT_USER_AGENT,
+        "X-Qiuyu-Agent-Version": APP_VERSION,
+        "X-Push-Agent-Version": APP_VERSION,
         "X-Qiuyu-Agent-ID": identity.agentId,
         "X-Qiuyu-Timestamp": timestamp,
         "X-Qiuyu-Nonce": nonce,

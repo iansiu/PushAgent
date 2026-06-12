@@ -447,11 +447,13 @@ function qbitStopNoticeCandidate(torrent, stopSettings = {}) {
   const ratio = Math.max(Number(torrent?.ratio || 0), 0);
   const ratioLimit = qbitRatioLimit(torrent, stopSettings);
   if (ratioLimit > 0 && ratio >= ratioLimit) {
-    return stopNotice("share_ratio", formatRatio(ratioLimit));
+    const notice = recentAutomaticStopNotice("share_ratio", formatRatio(ratioLimit), torrent?.last_activity);
+    if (notice) return notice;
   }
   const idleLimit = qbitInactiveSeedingLimitMinutes(torrent, stopSettings);
-  if (idleLimit > 0 && stoppedAfterIdleUnixSeconds(torrent?.last_activity, idleLimit)) {
-    return stopNotice("seeding_idle", String(idleLimit));
+  if (idleLimit > 0) {
+    const notice = idleAutomaticStopNotice("seeding_idle", String(idleLimit), torrent?.last_activity, idleLimit);
+    if (notice) return notice;
   }
   return null;
 }
@@ -485,11 +487,13 @@ function transmissionStopNoticeCandidate(torrent, stopSettings = {}) {
   const ratio = Math.max(Number(torrent?.uploadRatio || 0), 0);
   const ratioLimit = transmissionRatioLimit(torrent, stopSettings);
   if (ratioLimit > 0 && ratio >= ratioLimit) {
-    return stopNotice("share_ratio", formatRatio(ratioLimit));
+    const notice = recentAutomaticStopNotice("share_ratio", formatRatio(ratioLimit), torrent?.activityDate);
+    if (notice) return notice;
   }
   const idleLimit = transmissionIdleLimitMinutes(torrent, stopSettings);
-  if (idleLimit > 0 && stoppedAfterIdleUnixSeconds(torrent?.activityDate, idleLimit)) {
-    return stopNotice("seeding_idle", String(idleLimit));
+  if (idleLimit > 0) {
+    const notice = idleAutomaticStopNotice("seeding_idle", String(idleLimit), torrent?.activityDate, idleLimit);
+    if (notice) return notice;
   }
   return null;
 }
@@ -536,8 +540,56 @@ function aria2StopNoticeCandidate(item, globalOptions = {}) {
   return null;
 }
 
-function stopNotice(kind, value) {
-  return { kind, value: String(value || "") };
+function stopNotice(kind, value, metadata = {}) {
+  return {
+    kind,
+    value: String(value || ""),
+    triggeredAt: metadata.triggeredAt || "",
+    freshUntil: metadata.freshUntil || ""
+  };
+}
+
+function idleAutomaticStopNotice(kind, value, lastActivityUnixSeconds, limitMinutes) {
+  const timestamp = Number(lastActivityUnixSeconds || 0);
+  const limitMs = Number(limitMinutes || 0) * 60 * 1000;
+  if (!timestamp || limitMs <= 0) {
+    return null;
+  }
+  const triggeredAtMs = timestamp * 1000 + limitMs;
+  const freshUntilMs = triggeredAtMs + automaticStopFreshnessMs(limitMs);
+  const now = Date.now();
+  if (now < triggeredAtMs || now > freshUntilMs) {
+    return null;
+  }
+  return stopNotice(kind, value, {
+    triggeredAt: new Date(triggeredAtMs).toISOString(),
+    freshUntil: new Date(freshUntilMs).toISOString()
+  });
+}
+
+function recentAutomaticStopNotice(kind, value, lastActivityUnixSeconds) {
+  const timestamp = Number(lastActivityUnixSeconds || 0);
+  if (!timestamp) {
+    return null;
+  }
+  const triggeredAtMs = timestamp * 1000;
+  const freshUntilMs = triggeredAtMs + automaticStopFreshnessMs();
+  const now = Date.now();
+  if (now < triggeredAtMs || now > freshUntilMs) {
+    return null;
+  }
+  return stopNotice(kind, value, {
+    triggeredAt: new Date(triggeredAtMs).toISOString(),
+    freshUntil: new Date(freshUntilMs).toISOString()
+  });
+}
+
+function automaticStopFreshnessMs(limitMs = 0) {
+  const value = Number(limitMs || 0);
+  if (!Number.isFinite(value) || value <= 0) {
+    return 10 * 60 * 1000;
+  }
+  return Math.min(Math.max(value * 0.25, 2 * 60 * 1000), 10 * 60 * 1000);
 }
 
 function stoppedAfterIdleUnixSeconds(value, limitMinutes) {
@@ -545,7 +597,9 @@ function stoppedAfterIdleUnixSeconds(value, limitMinutes) {
   if (!timestamp || limitMinutes <= 0) {
     return false;
   }
-  return Date.now() - timestamp * 1000 >= limitMinutes * 60 * 1000;
+  const limitMs = limitMinutes * 60 * 1000;
+  const elapsed = Date.now() - timestamp * 1000;
+  return elapsed >= limitMs && elapsed <= limitMs + automaticStopFreshnessMs(limitMs);
 }
 
 function formatRatio(value) {

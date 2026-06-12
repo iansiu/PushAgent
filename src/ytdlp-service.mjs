@@ -7,6 +7,64 @@ const activeTasks = new Map();
 let taskEventHandler = null;
 const DEFAULT_YTDLP_OUTPUT_TEMPLATE = "%(title).80B.%(ext)s";
 const FFMPEG_MISSING_MESSAGE = "yt-dlp is installed, but ffmpeg is missing on the server. Audio/video streams cannot be merged.";
+const MAX_COOKIE_FILE_BYTES = 2 * 1024 * 1024;
+const YTDLP_COOKIE_SITES = [
+  {
+    id: "youtube",
+    name: "YouTube",
+    fileName: "youtube.txt",
+    domains: ["youtube.com", "youtu.be", "youtube-nocookie.com"]
+  },
+  {
+    id: "tiktok",
+    name: "TikTok",
+    fileName: "tiktok.txt",
+    domains: ["tiktok.com", "vt.tiktok.com", "vm.tiktok.com"]
+  },
+  {
+    id: "douyin",
+    name: "Douyin",
+    fileName: "douyin.txt",
+    domains: ["douyin.com", "iesdouyin.com", "v.douyin.com"]
+  },
+  {
+    id: "bilibili",
+    name: "Bilibili",
+    fileName: "bilibili.txt",
+    domains: ["bilibili.com", "b23.tv"]
+  },
+  {
+    id: "xiaohongshu",
+    name: "Xiaohongshu",
+    fileName: "xiaohongshu.txt",
+    domains: ["xiaohongshu.com", "xhslink.com"]
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    fileName: "instagram.txt",
+    domains: ["instagram.com", "instagr.am"]
+  },
+  {
+    id: "x",
+    name: "X",
+    fileName: "x.txt",
+    domains: ["x.com", "twitter.com", "t.co"]
+  },
+  {
+    id: "threads",
+    name: "Threads",
+    fileName: "threads.txt",
+    domains: ["threads.com", "threads.net"]
+  },
+  {
+    id: "others",
+    name: "Others",
+    fileName: "others.txt",
+    domains: []
+  }
+];
+const YTDLP_COOKIE_SITE_BY_ID = new Map(YTDLP_COOKIE_SITES.map((site) => [site.id, site]));
 const CONTROLLED_EXTRA_ARG_FLAGS = new Set([
   "--newline",
   "--progress",
@@ -29,8 +87,34 @@ export function setYtDlpTaskEventHandler(handler) {
 export async function diagnoseYtDlpServer(server) {
   const version = await commandFirstLine(server.binaryPath || "yt-dlp", ["--version"], "yt-dlp version check timed out.");
   const ffmpeg = ffmpegStatus(server);
+  const cookieInfo = inspectCookieFile(server.cookiesPath);
+  const siteCookies = listYtDlpCookies(server);
+  const cookieDiagnostic = cookieDiagnosticForServer(server, cookieInfo, siteCookies);
   const tasks = fetchYtDlpTasks(server);
   const needsFfmpeg = ytdlpNeedsFfmpeg(server.format, server.extraArgs);
+  const warnings = [];
+  if (cookieDiagnostic.warning) warnings.push(cookieDiagnostic.code);
+  if (needsFfmpeg && !ffmpeg.available) warnings.push("ffmpeg_missing");
+  warnings.push(...siteCookieWarnings(siteCookies));
+  if (cookieDiagnostic.fatal) {
+    return {
+      ok: false,
+      available: true,
+      code: cookieDiagnostic.code,
+      reason: cookieDiagnostic.code,
+      message: cookieDiagnostic.message,
+      version,
+      ytDlpVersion: version,
+      ffmpegAvailable: ffmpeg.available,
+      ffmpegVersion: ffmpeg.version,
+      formatRequiresFfmpeg: needsFfmpeg,
+      cookieStatus: cookieInfo.status,
+      cookieStatusDetail: publicCookieStatus(cookieInfo),
+      siteCookies,
+      taskCount: tasks.length,
+      warnings
+    };
+  }
   if (needsFfmpeg && !ffmpeg.available) {
     return {
       ok: false,
@@ -43,8 +127,11 @@ export async function diagnoseYtDlpServer(server) {
       ffmpegAvailable: false,
       ffmpegVersion: "",
       formatRequiresFfmpeg: true,
+      cookieStatus: cookieInfo.status,
+      cookieStatusDetail: publicCookieStatus(cookieInfo),
+      siteCookies,
       taskCount: tasks.length,
-      warnings: ["ffmpeg_missing"]
+      warnings
     };
   }
   return {
@@ -56,8 +143,11 @@ export async function diagnoseYtDlpServer(server) {
     ffmpegAvailable: ffmpeg.available,
     ffmpegVersion: ffmpeg.version,
     formatRequiresFfmpeg: needsFfmpeg,
+    cookieStatus: cookieInfo.status,
+    cookieStatusDetail: publicCookieStatus(cookieInfo),
+    siteCookies,
     taskCount: tasks.length,
-    warnings: []
+    warnings
   };
 }
 
@@ -86,6 +176,66 @@ export function fetchYtDlpTasks(server) {
   return tasks.map(publicTask);
 }
 
+export function listYtDlpCookies(server) {
+  return YTDLP_COOKIE_SITES.map((site) => publicSiteCookieStatus(server, site));
+}
+
+export function saveYtDlpCookieFile(server, siteId, content) {
+  const site = cookieSiteById(siteId);
+  const text = String(content || "");
+  const size = Buffer.byteLength(text, "utf8");
+  validateCookieText(text, size);
+  const filePath = cookieFilePath(server, site);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const tempPath = `${filePath}.${crypto.randomUUID()}.tmp`;
+  fs.writeFileSync(tempPath, text, { mode: 0o600 });
+  fs.chmodSync(tempPath, 0o600);
+  fs.renameSync(tempPath, filePath);
+  console.log(`[${server.id}] yt-dlp cookie imported site=${site.id} file=${site.fileName} size=${size}`);
+  return publicSiteCookieStatus(server, site);
+}
+
+export function appendYtDlpCookieFile(server, siteId, content) {
+  const site = cookieSiteById(siteId);
+  const text = String(content || "");
+  const size = Buffer.byteLength(text, "utf8");
+  validateCookieText(text, size);
+  const filePath = cookieFilePath(server, site);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  let existing = "";
+  try {
+    existing = fs.readFileSync(filePath, "utf8");
+  } catch {
+    existing = "";
+  }
+  const combined = existing.trim()
+    ? `${existing.replace(/\s*$/u, "")}\n${text.replace(/^\s*/u, "")}`
+    : text;
+  const combinedSize = Buffer.byteLength(combined, "utf8");
+  if (combinedSize > MAX_COOKIE_FILE_BYTES) {
+    const error = new Error("Cookie file is too large.");
+    error.statusCode = 413;
+    error.code = "cookie_file_too_large";
+    throw error;
+  }
+  validateCookieText(combined, combinedSize);
+  const tempPath = `${filePath}.${crypto.randomUUID()}.tmp`;
+  fs.writeFileSync(tempPath, combined, { mode: 0o600 });
+  fs.chmodSync(tempPath, 0o600);
+  fs.renameSync(tempPath, filePath);
+  console.log(`[${server.id}] yt-dlp cookie appended site=${site.id} file=${site.fileName} size=${size} combinedSize=${combinedSize}`);
+  return publicSiteCookieStatus(server, site);
+}
+
+export function deleteYtDlpCookieFile(server, siteId) {
+  const site = cookieSiteById(siteId);
+  for (const filePath of cookieFilePaths(server, site)) {
+    fs.rmSync(filePath, { force: true });
+  }
+  console.log(`[${server.id}] yt-dlp cookie removed site=${site.id} file=${site.fileName}`);
+  return publicSiteCookieStatus(server, site);
+}
+
 export function addYtDlpTask(server, payload = {}) {
   const url = extractHTTPURL(payload.url || payload.source || "");
   if (!url) {
@@ -104,6 +254,7 @@ export function addYtDlpTask(server, payload = {}) {
   const id = crypto.randomUUID();
   const baseOutputTemplate = outputTemplateFromPayload(payload.filename) || String(server.outputTemplate || "").trim();
   const duplicateURL = readState(server).tasks.some((task) => normalizeTaskURL(task.url) === normalizeTaskURL(url));
+  const cookieMatch = ytdlpCookieMatchForURL(server, url, payload.cookiesPath);
   const task = {
     id,
     url,
@@ -124,7 +275,8 @@ export function addYtDlpTask(server, payload = {}) {
       : baseOutputTemplate,
     downloadDir: resolvedDownloadDir(server, payload.downloadDirectory),
     proxy: String(payload.proxy || server.proxy || "").trim(),
-    cookiesPath: String(payload.cookiesPath || server.cookiesPath || "").trim(),
+    cookiesPath: cookieMatch.cookiesPath,
+    cookieSite: cookieMatch.siteId,
     noPlaylist: payload.noPlaylist ?? server.noPlaylist,
     extraArgs: sanitizeExtraArgs(payload.extraArgs ?? server.extraArgs ?? []),
     errorCode: "",
@@ -235,6 +387,11 @@ function startYtDlpProcess(server, task) {
     finishTask(server, task.id, "failed", youtubeCookieRequiredError(""));
     return;
   }
+  const cookieConfigError = cookieConfigErrorForTask(task);
+  if (cookieConfigError) {
+    finishTask(server, task.id, "failed", cookieConfigError);
+    return;
+  }
   if (ytdlpNeedsFfmpeg(task.format || server.format, task.extraArgs) && !ffmpegAvailableSync(server)) {
     finishTask(server, task.id, "failed", ffmpegMissingError(""));
     return;
@@ -268,14 +425,16 @@ function startYtDlpProcess(server, task) {
       processYtDlpLine(server, task.id, line);
     }
   });
-  child.on("error", (error) => {
+  child.on("error", async (error) => {
+    const active = activeTasks.get(key);
+    if (active) active.intent = "errored";
     activeTasks.delete(key);
-    finishTask(server, task.id, "failed", error.message || "yt-dlp failed to start.");
+    await finishTask(server, task.id, "failed", error.message || "yt-dlp failed to start.", { emitEvent: true });
   });
   child.on("close", async (code) => {
     const active = activeTasks.get(key);
     activeTasks.delete(key);
-    if (active?.intent === "paused" || active?.intent === "removed") {
+    if (!active || active.intent === "paused" || active.intent === "removed" || active.intent === "errored") {
       return;
     }
     if (code === 0 && !fatalOutputSeen && !hasFatalYtDlpOutput(stderrTail)) {
@@ -505,11 +664,8 @@ function classifyYtDlpError(task, rawMessage) {
   if (isPageLoadError(debugMessage)) {
     return ytdlpClassifiedError("webpage_unavailable", "yt-dlp could not load the page. Check the URL, network, proxy, or cookies.", debugMessage);
   }
-  if (site === "youtube" && isCookieAuthError(debugMessage)) {
-    return youtubeCookieRequiredError(debugMessage);
-  }
   if (isCookieAuthError(debugMessage)) {
-    return ytdlpClassifiedError(siteSpecificCode(site, "cookie_required"), siteCookieRequiredMessage(site), debugMessage);
+    return cookieAuthErrorForTask(task, site, debugMessage);
   }
   if (isChallengeOrFormatError(debugMessage)) {
     return ytdlpClassifiedError("challenge_or_format_failed", "Unable to get downloadable video formats. Update yt-dlp and check that browser simulation dependencies (deno / bun / node) are working.", debugMessage);
@@ -576,6 +732,44 @@ function youtubeCookieRequiredError(debugMessage) {
   };
 }
 
+function cookieAuthErrorForTask(task, site, debugMessage) {
+  const cookiesPath = String(task?.cookiesPath || "").trim();
+  if (!cookiesPath) {
+    if (site === "youtube") {
+      return youtubeCookieRequiredError(debugMessage);
+    }
+    return ytdlpClassifiedError(siteSpecificCode(site, "cookie_required"), siteCookieRequiredMessage(site), debugMessage);
+  }
+  const cookieInfo = inspectCookieFile(cookiesPath);
+  if (cookieInfo.status === "file_missing") {
+    return ytdlpClassifiedError(siteSpecificCode(site, "cookie_file_missing"), "Configured cookiesPath does not exist. Check PushAgent config.json and the file path.", debugMessage);
+  }
+  if (cookieInfo.status === "unreadable" || cookieInfo.status === "empty" || cookieInfo.status === "no_cookie_records") {
+    return ytdlpClassifiedError(siteSpecificCode(site, "cookie_file_invalid"), "Configured cookiesPath cannot be read or does not look like a valid cookies.txt file.", debugMessage);
+  }
+  if (cookieInfo.status === "all_persistent_cookies_expired") {
+    return ytdlpClassifiedError(siteSpecificCode(site, "cookie_expired"), siteCookieExpiredMessage(site), debugMessage);
+  }
+  return ytdlpClassifiedError(siteSpecificCode(site, "cookie_invalid_or_expired"), siteCookieInvalidOrExpiredMessage(site), debugMessage);
+}
+
+function cookieConfigErrorForTask(task) {
+  const cookiesPath = String(task?.cookiesPath || "").trim();
+  if (!cookiesPath) return null;
+  const site = siteFamily(task?.url);
+  const cookieInfo = inspectCookieFile(cookiesPath);
+  if (cookieInfo.status === "file_missing") {
+    return ytdlpClassifiedError(siteSpecificCode(site, "cookie_file_missing"), "Configured cookiesPath does not exist. Check PushAgent config.json and the file path.", "");
+  }
+  if (cookieInfo.status === "unreadable" || cookieInfo.status === "empty" || cookieInfo.status === "no_cookie_records") {
+    return ytdlpClassifiedError(siteSpecificCode(site, "cookie_file_invalid"), "Configured cookiesPath cannot be read or does not look like a valid cookies.txt file.", "");
+  }
+  if (cookieInfo.status === "all_persistent_cookies_expired") {
+    return ytdlpClassifiedError(siteSpecificCode(site, "cookie_expired"), siteCookieExpiredMessage(site), "");
+  }
+  return null;
+}
+
 function ffmpegMissingError(debugMessage) {
   return {
     code: "ffmpeg_missing",
@@ -590,6 +784,367 @@ function ytdlpClassifiedError(code, message, debugMessage) {
     message,
     debugMessage: String(debugMessage || "").trim()
   };
+}
+
+function inspectCookieFile(cookiesPath) {
+  const configuredPath = String(cookiesPath || "").trim();
+  if (!configuredPath) {
+    return cookieInfo("not_configured", configuredPath);
+  }
+  const resolvedPath = path.resolve(configuredPath);
+  let stat;
+  try {
+    stat = fs.statSync(resolvedPath);
+  } catch {
+    return cookieInfo("file_missing", resolvedPath);
+  }
+  if (!stat.isFile()) {
+    return cookieInfo("file_missing", resolvedPath);
+  }
+  if (stat.size <= 0) {
+    return cookieInfo("empty", resolvedPath, { size: stat.size });
+  }
+  let content = "";
+  try {
+    content = fs.readFileSync(resolvedPath, "utf8");
+  } catch {
+    return cookieInfo("unreadable", resolvedPath, { size: stat.size });
+  }
+  return inspectCookieContent(content, resolvedPath, stat.size);
+}
+
+function inspectCookieContent(content, cookiesPath = "", size = 0, options = {}) {
+  const records = parseCookieRecords(content, { allowJSON: options.allowJSON !== false });
+  if (!records.length) {
+    return cookieInfo("no_cookie_records", cookiesPath, { size });
+  }
+  const now = Math.floor(Date.now() / 1000);
+  let expiredCount = 0;
+  let validCount = 0;
+  let sessionCount = 0;
+  let expiresAt = 0;
+  for (const record of records) {
+    const expiry = Number(record.expires || 0);
+    if (!Number.isFinite(expiry) || expiry <= 0) {
+      sessionCount += 1;
+    } else if (expiry <= now) {
+      expiredCount += 1;
+    } else {
+      validCount += 1;
+      expiresAt = Math.max(expiresAt, expiry);
+    }
+  }
+  const counters = {
+    size,
+    totalCookieCount: records.length,
+    expiredCookieCount: expiredCount,
+    validCookieCount: validCount,
+    sessionCookieCount: sessionCount,
+    expiresAt: expiresAt > 0 ? new Date(expiresAt * 1000).toISOString() : ""
+  };
+  if (validCount > 0) {
+    return cookieInfo("probably_valid", cookiesPath, counters);
+  }
+  if (sessionCount > 0) {
+    return cookieInfo("session_only", cookiesPath, counters);
+  }
+  return cookieInfo("all_persistent_cookies_expired", cookiesPath, counters);
+}
+
+function validateCookieText(text, size) {
+  if (size <= 0) {
+    const error = new Error("Cookie file is empty.");
+    error.statusCode = 400;
+    error.code = "cookie_file_invalid";
+    throw error;
+  }
+  if (size > MAX_COOKIE_FILE_BYTES) {
+    const error = new Error("Cookie file is too large.");
+    error.statusCode = 413;
+    error.code = "cookie_file_too_large";
+    throw error;
+  }
+  if (hasUnsupportedCookieTextCharacters(text) || !looksLikeNetscapeCookieText(text)) {
+    const error = new Error("Cookie file must use UTF-8 Netscape cookies.txt format.");
+    error.statusCode = 400;
+    error.code = "cookie_file_invalid";
+    throw error;
+  }
+  const validation = inspectCookieContent(text, "", size, { allowJSON: false });
+  if (["empty", "no_cookie_records"].includes(validation.status)) {
+    const error = new Error("Cookie file must use Netscape cookies.txt format.");
+    error.statusCode = 400;
+    error.code = "cookie_file_invalid";
+    throw error;
+  }
+}
+
+function hasUnsupportedCookieTextCharacters(text) {
+  return /[\u0000\uFFFD]/u.test(text) || /[\x01-\x08\x0B\x0C\x0E-\x1F]/u.test(text);
+}
+
+function looksLikeNetscapeCookieText(text) {
+  let hasCookieRecord = false;
+  for (const rawLine of String(text || "").split(/\r?\n/u)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (line.startsWith("#") && !line.startsWith("#HttpOnly_")) continue;
+    if (!parseNetscapeCookieLine(line)) {
+      return false;
+    }
+    hasCookieRecord = true;
+  }
+  return hasCookieRecord;
+}
+
+function cookieInfo(status, cookiesPath, extra = {}) {
+  return {
+    status,
+    pathConfigured: Boolean(String(cookiesPath || "").trim()),
+    cookiesPath: String(cookiesPath || ""),
+    ...extra
+  };
+}
+
+function parseCookieRecords(content, options = {}) {
+  const text = String(content || "").trim();
+  if (!text) return [];
+  if (options.allowJSON !== false) {
+    const jsonRecords = parseJSONCookieRecords(text);
+    if (jsonRecords.length) return jsonRecords;
+  }
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && (!line.startsWith("#") || line.startsWith("#HttpOnly_")))
+    .map(parseNetscapeCookieLine)
+    .filter(Boolean);
+}
+
+function parseJSONCookieRecords(text) {
+  if (!text.startsWith("[") && !text.startsWith("{")) return [];
+  try {
+    const parsed = JSON.parse(text);
+    const items = Array.isArray(parsed) ? parsed : Array.isArray(parsed.cookies) ? parsed.cookies : [];
+    return items
+      .filter((item) => item && typeof item === "object")
+      .map((item) => ({
+        domain: String(item.domain || item.host || ""),
+        name: String(item.name || ""),
+        expires: Number(item.expirationDate ?? item.expires ?? item.expiry ?? 0)
+      }))
+      .filter((item) => item.name || item.domain);
+  } catch {
+    return [];
+  }
+}
+
+function parseNetscapeCookieLine(line) {
+  const parts = String(line || "").split(/\t/);
+  if (parts.length < 7) return null;
+  const domain = parts[0].startsWith("#HttpOnly_") ? parts[0].slice("#HttpOnly_".length) : parts[0];
+  const includeSubdomains = String(parts[1] || "").trim().toUpperCase();
+  const cookiePath = String(parts[2] || "").trim();
+  const secure = String(parts[3] || "").trim().toUpperCase();
+  const expiry = Number(parts[4]);
+  const name = String(parts[5] || "").trim();
+  if (
+    !domain.trim() ||
+    !["TRUE", "FALSE"].includes(includeSubdomains) ||
+    !cookiePath.startsWith("/") ||
+    !["TRUE", "FALSE"].includes(secure) ||
+    !Number.isFinite(expiry) ||
+    !name
+  ) {
+    return null;
+  }
+  return {
+    domain,
+    name,
+    expires: expiry
+  };
+}
+
+function publicCookieStatus(info) {
+  return {
+    status: info.status || "unknown",
+    pathConfigured: info.pathConfigured === true,
+    cookiesPath: info.cookiesPath || "",
+    totalCookieCount: Number(info.totalCookieCount || 0),
+    validCookieCount: Number(info.validCookieCount || 0),
+    expiredCookieCount: Number(info.expiredCookieCount || 0),
+    sessionCookieCount: Number(info.sessionCookieCount || 0),
+    expiresAt: info.expiresAt || ""
+  };
+}
+
+function publicSiteCookieStatus(server, site) {
+  const filePath = cookieFilePath(server, site);
+  migrateLegacyCookieFile(server, site, filePath);
+  const info = inspectCookieFile(filePath);
+  const imported = !["file_missing", "not_configured"].includes(info.status);
+  let updatedAt = "";
+  if (imported) {
+    try {
+      updatedAt = fs.statSync(filePath).mtime.toISOString();
+    } catch {
+      updatedAt = "";
+    }
+  }
+  return {
+    id: site.id,
+    name: site.name,
+    domains: site.domains,
+    fileName: site.fileName,
+    imported,
+    status: imported ? info.status : "not_imported",
+    updatedAt,
+    expiresAt: info.expiresAt || "",
+    totalCookieCount: Number(info.totalCookieCount || 0),
+    validCookieCount: Number(info.validCookieCount || 0),
+    expiredCookieCount: Number(info.expiredCookieCount || 0),
+    sessionCookieCount: Number(info.sessionCookieCount || 0)
+  };
+}
+
+function siteCookieWarnings(siteCookies) {
+  return siteCookies
+    .filter((item) => item.imported && ["all_persistent_cookies_expired", "no_cookie_records", "empty", "unreadable"].includes(item.status))
+    .map((item) => `${item.id}_cookie_${item.status === "all_persistent_cookies_expired" ? "expired" : "invalid"}`);
+}
+
+function cookieDiagnosticForServer(server, cookieInfo, siteCookies = []) {
+  if (cookieInfo.status === "not_configured") {
+    if (server.requireCookiesForYoutube) {
+      const youtubeCookie = siteCookies.find((item) => item.id === "youtube");
+      if (youtubeCookie?.imported && !["all_persistent_cookies_expired", "no_cookie_records", "empty"].includes(youtubeCookie.status)) {
+        return { fatal: false, warning: false, code: "", message: "" };
+      }
+      return {
+        fatal: true,
+        warning: true,
+        code: "youtube_cookie_required",
+        message: "YouTube cookies are required by config, but cookiesPath is not configured."
+      };
+    }
+    return { fatal: false, warning: false, code: "", message: "" };
+  }
+  if (cookieInfo.status === "file_missing") {
+    return {
+      fatal: true,
+      warning: true,
+      code: "cookie_file_missing",
+      message: "Configured cookiesPath does not exist. Check PushAgent config.json and the file path."
+    };
+  }
+  if (cookieInfo.status === "unreadable" || cookieInfo.status === "empty" || cookieInfo.status === "no_cookie_records") {
+    return {
+      fatal: true,
+      warning: true,
+      code: "cookie_file_invalid",
+      message: "Configured cookiesPath cannot be read or does not look like a valid cookies.txt file."
+    };
+  }
+  if (cookieInfo.status === "all_persistent_cookies_expired") {
+    return {
+      fatal: true,
+      warning: true,
+      code: "cookie_expired",
+      message: "Configured cookiesPath appears to be expired. Re-export browser cookies and update PushAgent."
+    };
+  }
+  return { fatal: false, warning: false, code: "", message: "" };
+}
+
+function ytdlpCookieMatchForURL(server, url, explicitCookiesPath = "") {
+  const explicitPath = String(explicitCookiesPath || "").trim();
+  if (explicitPath) {
+    return { siteId: "", cookiesPath: explicitPath };
+  }
+  const site = cookieSiteForURL(url);
+  if (site) {
+    const filePath = cookieFilePath(server, site);
+    const info = inspectCookieFile(filePath);
+    if (!["file_missing", "not_configured"].includes(info.status)) {
+      return { siteId: site.id, cookiesPath: filePath };
+    }
+  } else {
+    const fallbackSite = YTDLP_COOKIE_SITE_BY_ID.get("others");
+    if (fallbackSite) {
+      const filePath = cookieFilePath(server, fallbackSite);
+      const info = inspectCookieFile(filePath);
+      if (!["file_missing", "not_configured"].includes(info.status)) {
+        return { siteId: fallbackSite.id, cookiesPath: filePath };
+      }
+    }
+  }
+  return {
+    siteId: site?.id || "",
+    cookiesPath: String(server.cookiesPath || "").trim()
+  };
+}
+
+function cookieSiteById(siteId) {
+  const id = String(siteId || "").trim().toLowerCase();
+  const site = YTDLP_COOKIE_SITE_BY_ID.get(id);
+  if (!site) {
+    const error = new Error(`Unsupported cookie site: ${siteId}`);
+    error.statusCode = 404;
+    error.code = "cookie_site_not_supported";
+    throw error;
+  }
+  return site;
+}
+
+function cookieSiteForURL(value) {
+  let hostname = "";
+  try {
+    hostname = new URL(String(value || "")).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  return YTDLP_COOKIE_SITES.find((site) => site.domains.some((domain) => hostnameMatches(hostname, domain))) || null;
+}
+
+function cookieFilePath(server, site) {
+  return path.resolve(ytdlpCookiesDir(server), site.fileName);
+}
+
+function cookieFilePaths(server, site) {
+  return uniquePaths([cookieFilePath(server, site), ...legacyCookieFilePaths(server, site)]);
+}
+
+function ytdlpCookiesDir(server) {
+  return path.resolve(server.cookiesDir || path.join(server.downloadDir || process.cwd(), ".qiuyu-ytdlp-cookies"));
+}
+
+function legacyCookieFilePaths(server, site) {
+  const dirs = Array.isArray(server.legacyCookiesDirs) ? server.legacyCookiesDirs : [];
+  return dirs
+    .map((dir) => path.resolve(String(dir || ""), site.fileName))
+    .filter((filePath) => filePath && filePath !== cookieFilePath(server, site));
+}
+
+function migrateLegacyCookieFile(server, site, targetPath = cookieFilePath(server, site)) {
+  if (fs.existsSync(targetPath)) return;
+  for (const legacyPath of legacyCookieFilePaths(server, site)) {
+    if (!fs.existsSync(legacyPath)) continue;
+    try {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.copyFileSync(legacyPath, targetPath);
+      fs.chmodSync(targetPath, 0o600);
+      console.log(`[${server.id}] migrated yt-dlp cookie site=${site.id} from ${legacyPath}`);
+      return;
+    } catch (error) {
+      console.warn(`[${server.id}] failed to migrate yt-dlp cookie site=${site.id}: ${error.message || error}`);
+    }
+  }
+}
+
+function hostnameMatches(hostname, domain) {
+  const normalizedHost = String(hostname || "").toLowerCase().replace(/\.$/, "");
+  const normalizedDomain = String(domain || "").toLowerCase().replace(/\.$/, "");
+  return normalizedHost === normalizedDomain || normalizedHost.endsWith(`.${normalizedDomain}`);
 }
 
 function isCookieAuthError(message) {
@@ -724,25 +1279,7 @@ function isYouTubeURL(value) {
 }
 
 function siteFamily(value) {
-  try {
-    const url = new URL(String(value || ""));
-    const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
-    if (hostname === "youtube.com" || hostname.endsWith(".youtube.com") || hostname === "youtu.be" || hostname.endsWith(".youtu.be")) {
-      return "youtube";
-    }
-    if (hostname === "tiktok.com" || hostname.endsWith(".tiktok.com") || hostname === "vt.tiktok.com") {
-      return "tiktok";
-    }
-    if (hostname === "douyin.com" || hostname.endsWith(".douyin.com") || hostname === "iesdouyin.com" || hostname.endsWith(".iesdouyin.com")) {
-      return "douyin";
-    }
-    if (hostname === "bilibili.com" || hostname.endsWith(".bilibili.com") || hostname === "b23.tv") {
-      return "bilibili";
-    }
-    return "generic";
-  } catch {
-    return "generic";
-  }
+  return cookieSiteForURL(value)?.id || "generic";
 }
 
 function siteSpecificCode(site, suffix) {
@@ -759,6 +1296,36 @@ function siteCookieRequiredMessage(site) {
       return "Bilibili requires login or cookie authentication. Export browser cookies and configure cookiesPath in PushAgent.";
     default:
       return "This site requires login or cookie authentication. Export browser cookies and configure cookiesPath in PushAgent.";
+  }
+}
+
+function siteCookieExpiredMessage(site) {
+  switch (site) {
+    case "youtube":
+      return "YouTube cookies appear to be expired. Re-export browser cookies and update cookiesPath in PushAgent.";
+    case "tiktok":
+      return "TikTok cookies appear to be expired. Re-export browser cookies and update cookiesPath in PushAgent.";
+    case "douyin":
+      return "Douyin cookies appear to be expired. Re-export browser cookies and update cookiesPath in PushAgent.";
+    case "bilibili":
+      return "Bilibili cookies appear to be expired. Re-export browser cookies and update cookiesPath in PushAgent.";
+    default:
+      return "Cookies appear to be expired. Re-export browser cookies and update cookiesPath in PushAgent.";
+  }
+}
+
+function siteCookieInvalidOrExpiredMessage(site) {
+  switch (site) {
+    case "youtube":
+      return "YouTube cookies may be expired or invalid. Re-export browser cookies and update cookiesPath in PushAgent.";
+    case "tiktok":
+      return "TikTok cookies may be expired or invalid. Re-export browser cookies and update cookiesPath in PushAgent.";
+    case "douyin":
+      return "Douyin cookies may be expired or invalid. Re-export browser cookies and update cookiesPath in PushAgent.";
+    case "bilibili":
+      return "Bilibili cookies may be expired or invalid. Re-export browser cookies and update cookiesPath in PushAgent.";
+    default:
+      return "Cookies may be expired or invalid. Re-export browser cookies and update cookiesPath in PushAgent.";
   }
 }
 
@@ -784,32 +1351,140 @@ function upsertTask(server, task) {
   const state = readState(server);
   const tasks = state.tasks.filter((item) => item.id !== task.id);
   tasks.unshift(task);
-  writeState(server, { ...state, tasks: tasks.slice(0, Number(server.historyLimit || 300)) });
+  writeState(server, { ...state, tasks: tasks.slice(0, Number(server.historyLimit || 1000)) });
 }
 
 function readState(server) {
   const filePath = statePath(server);
-  if (!fs.existsSync(filePath)) {
-    return { tasks: [] };
+  const currentExists = fs.existsSync(filePath);
+  const currentMtimeMs = fileMtimeMs(filePath);
+  const currentState = readStateFile(filePath);
+  const legacyPaths = legacyStatePaths(server).filter((legacyPath) => fs.existsSync(legacyPath));
+  if (!legacyPaths.length || currentState.legacyStateMigratedAt) {
+    return currentState;
   }
-  try {
-    const payload = JSON.parse(fs.readFileSync(filePath, "utf8"));
-    return { tasks: Array.isArray(payload.tasks) ? payload.tasks : [] };
-  } catch {
-    return { tasks: [] };
+  const newestLegacyMtimeMs = Math.max(...legacyPaths.map(fileMtimeMs));
+  if (currentExists && newestLegacyMtimeMs <= currentMtimeMs) {
+    const migratedState = markLegacyStateMigrated(currentState, legacyPaths);
+    writeState(server, migratedState);
+    return migratedState;
   }
+  const legacyTasks = legacyPaths.flatMap((legacyPath) => readStateFile(legacyPath).tasks);
+  const migratedState = markLegacyStateMigrated(currentState, legacyPaths);
+  if (!legacyTasks.length) {
+    writeState(server, migratedState);
+    return migratedState;
+  }
+  const merged = mergeTaskLists(currentState.tasks, legacyTasks).slice(0, Number(server.historyLimit || 1000));
+  const mergedState = { ...migratedState, tasks: merged };
+  if (!taskListsEqualByUpdate(currentState.tasks, merged) || !currentState.legacyStateMigratedAt) {
+    writeState(server, mergedState);
+  }
+  return mergedState;
 }
 
 function writeState(server, state) {
   const filePath = statePath(server);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   const tempPath = `${filePath}.tmp`;
-  fs.writeFileSync(tempPath, JSON.stringify({ tasks: state.tasks || [] }, null, 2));
+  const payload = {
+    tasks: Array.isArray(state.tasks) ? state.tasks : []
+  };
+  if (state.legacyStateMigratedAt) {
+    payload.legacyStateMigratedAt = state.legacyStateMigratedAt;
+  }
+  if (Array.isArray(state.legacyStatePaths) && state.legacyStatePaths.length) {
+    payload.legacyStatePaths = state.legacyStatePaths;
+  }
+  fs.writeFileSync(tempPath, JSON.stringify(payload, null, 2));
   fs.renameSync(tempPath, filePath);
 }
 
 function statePath(server) {
   return path.resolve(server.statePath || path.join(server.downloadDir || process.cwd(), ".qiuyu-ytdlp-tasks.json"));
+}
+
+function legacyStatePaths(server) {
+  const values = Array.isArray(server.legacyStatePaths) ? server.legacyStatePaths : [];
+  return uniquePaths(values.map((value) => path.resolve(String(value || ""))).filter((item) => item && item !== statePath(server)));
+}
+
+function readStateFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return { tasks: [] };
+  }
+  try {
+    const payload = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    return {
+      tasks: Array.isArray(payload.tasks) ? payload.tasks : [],
+      legacyStateMigratedAt: typeof payload.legacyStateMigratedAt === "string" ? payload.legacyStateMigratedAt : "",
+      legacyStatePaths: Array.isArray(payload.legacyStatePaths) ? payload.legacyStatePaths.filter(Boolean) : []
+    };
+  } catch {
+    return { tasks: [] };
+  }
+}
+
+function markLegacyStateMigrated(state, legacyPaths) {
+  return {
+    ...state,
+    legacyStateMigratedAt: new Date().toISOString(),
+    legacyStatePaths: uniquePaths([...(state.legacyStatePaths || []), ...legacyPaths])
+  };
+}
+
+function fileMtimeMs(filePath) {
+  try {
+    return fs.statSync(filePath).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
+function mergeTaskLists(primaryTasks, fallbackTasks) {
+  const tasksById = new Map();
+  for (const task of [...fallbackTasks, ...primaryTasks]) {
+    const id = String(task?.id || "").trim();
+    if (!id) continue;
+    const previous = tasksById.get(id);
+    tasksById.set(id, newerTask(previous, task));
+  }
+  return [...tasksById.values()].sort((left, right) => taskSortTimestamp(right) - taskSortTimestamp(left));
+}
+
+function newerTask(left, right) {
+  if (!left) return right;
+  if (!right) return left;
+  return taskSortTimestamp(right) >= taskSortTimestamp(left) ? { ...left, ...right } : { ...right, ...left };
+}
+
+function taskSortTimestamp(task) {
+  for (const key of ["updatedAt", "completedAt", "finishedAt", "createdAt"]) {
+    const value = Date.parse(task?.[key] || "");
+    if (Number.isFinite(value)) return value;
+  }
+  return 0;
+}
+
+function taskListsEqualByUpdate(left, right) {
+  if (left.length !== right.length) return false;
+  for (let index = 0; index < left.length; index += 1) {
+    if (String(left[index]?.id || "") !== String(right[index]?.id || "")) return false;
+    if (String(left[index]?.updatedAt || "") !== String(right[index]?.updatedAt || "")) return false;
+  }
+  return true;
+}
+
+function uniquePaths(values) {
+  const seen = new Set();
+  const result = [];
+  for (const value of values) {
+    const resolved = path.resolve(String(value || ""));
+    if (!resolved || seen.has(resolved)) continue;
+    seen.add(resolved);
+    result.push(resolved);
+  }
+  return result;
 }
 
 function resolvedDownloadDir(server, value) {
