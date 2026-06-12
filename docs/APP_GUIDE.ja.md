@@ -110,6 +110,42 @@ iPad と Mac では、表ヘッダーの境界をドラッグして列幅を変�
 
 yt-dlp タスクでは、アップロード速度、アップロード済みサイズ、Seeds、Leeches、Ratio など torrent 専用の項目は非表示になります。
 
+## タスク状態の対応
+
+QiuyuRemote のタスクリストでは、各サービスの状態を App 用に正規化して表示します。サービスが元の状態値を返す場合、その値も可能な限り保持されます。App は正規化状態、元の状態、進捗、転送速度、自動ルール通知を組み合わせて判断します。そのため、共有率やアイドル停止ルールで止まった完了済み torrent は、単なる Complete ではなく、通知付きの Stopped として表示されることがあります。
+
+| サービス | サービス状態または条件 | App 表示状態 |
+| --- | --- | --- |
+| qBittorrent | `error`, `missingFiles` | Error |
+| qBittorrent | `pausedUP`, `stoppedUP`, `stalledUP`, `queuedUP` | Complete。自動ルール通知がある場合は Stopped として表示されます |
+| qBittorrent | `paused` を含む値、または `stoppedDL` | Paused |
+| qBittorrent | `queued` を含む値 | Waiting |
+| qBittorrent | `checking`, `metadata`, `allocating` を含む値、または `filesChecked`, `metadataReceived` | Checking または Processing |
+| qBittorrent | `uploading` または `forcedUP` を含む値 | Seeding |
+| qBittorrent | `stalled` を含む値 | Stalled |
+| qBittorrent | `downloading` または `forcedDL` を含む値 | Downloading |
+| qBittorrent | `moving` | Moving |
+| Transmission | `error > 0` | Error |
+| Transmission | `0` | Stopped。進捗が完了している場合は、自動ルール通知がない限り Complete として扱われます |
+| Transmission | `1`, `2` | Checking |
+| Transmission | `3`, `4` | Downloading |
+| Transmission | `5`, `6` | Seeding |
+| aria2 | `active` | Downloading |
+| aria2 | `waiting` | Waiting |
+| aria2 | `paused` | Paused |
+| aria2 | `error` | Error |
+| aria2 | `complete` | Complete。自動ルール通知がある場合は Stopped として表示されます |
+| aria2 | `removed` | Removed |
+| yt-dlp | `downloading`, `running` | Downloading |
+| yt-dlp | `postprocessing`, `processing`, `merge`, `fixup`, `metadata`, `extract`, `remux`, `convert` | Processing |
+| yt-dlp | `moving` | Moving |
+| yt-dlp | `completed` | Complete |
+| yt-dlp | `failed`, `error`, `lost` | Error |
+| yt-dlp | `paused` | Paused |
+| yt-dlp | `queued` | Waiting |
+
+認識できない値はサービスが返した元の状態として表示されます。状態が空の場合は Unknown と表示されます。
+
 ## タスク操作
 
 タスクを選択すると詳細を表示できます。タスクを長押しまたは右クリックすると操作メニューが開きます。

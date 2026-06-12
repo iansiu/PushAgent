@@ -110,6 +110,42 @@ iPad와 Mac에서는 표 머리글의 경계를 드래그해 열 너비를 조�
 
 yt-dlp 작업은 업로드 속도, 업로드 크기, Seeds, Leeches, Ratio 같은 torrent 전용 필드를 숨깁니다.
 
+## 작업 상태 매핑
+
+QiuyuRemote의 작업 목록은 각 다운로드 서비스의 상태를 앱 표시용으로 정규화합니다. 다운로드 서비스가 원본 상태를 제공하면 앱은 가능한 한 그 값도 보존합니다. 앱은 정규화된 상태, 원본 상태, 진행률, 전송 속도, 자동 규칙 알림을 함께 판단합니다. 예를 들어 공유 비율이나 유휴 중지 규칙으로 멈춘 완료된 torrent는 단순 Complete 대신 알림이 있는 Stopped로 표시될 수 있습니다.
+
+| 서비스 | 서비스 상태 또는 조건 | 앱 표시 상태 |
+| --- | --- | --- |
+| qBittorrent | `error`, `missingFiles` | Error |
+| qBittorrent | `pausedUP`, `stoppedUP`, `stalledUP`, `queuedUP` | Complete. 자동 규칙 알림이 있으면 Stopped로 표시될 수 있음 |
+| qBittorrent | `paused`가 포함된 값 또는 `stoppedDL` | Paused |
+| qBittorrent | `queued`가 포함된 값 | Waiting |
+| qBittorrent | `checking`, `metadata`, `allocating`이 포함된 값, 또는 `filesChecked`, `metadataReceived` | Checking 또는 Processing |
+| qBittorrent | `uploading` 또는 `forcedUP`가 포함된 값 | Seeding |
+| qBittorrent | `stalled`가 포함된 값 | Stalled |
+| qBittorrent | `downloading` 또는 `forcedDL`이 포함된 값 | Downloading |
+| qBittorrent | `moving` | Moving |
+| Transmission | `error > 0` | Error |
+| Transmission | `0` | Stopped. 진행률이 완료된 경우 자동 규칙 알림이 없으면 Complete로 처리됨 |
+| Transmission | `1`, `2` | Checking |
+| Transmission | `3`, `4` | Downloading |
+| Transmission | `5`, `6` | Seeding |
+| aria2 | `active` | Downloading |
+| aria2 | `waiting` | Waiting |
+| aria2 | `paused` | Paused |
+| aria2 | `error` | Error |
+| aria2 | `complete` | Complete. 자동 규칙 알림이 있으면 Stopped로 표시될 수 있음 |
+| aria2 | `removed` | Removed |
+| yt-dlp | `downloading`, `running` | Downloading |
+| yt-dlp | `postprocessing`, `processing`, `merge`, `fixup`, `metadata`, `extract`, `remux`, `convert` | Processing |
+| yt-dlp | `moving` | Moving |
+| yt-dlp | `completed` | Complete |
+| yt-dlp | `failed`, `error`, `lost` | Error |
+| yt-dlp | `paused` | Paused |
+| yt-dlp | `queued` | Waiting |
+
+인식할 수 없는 값은 서비스가 반환한 원본 상태로 표시됩니다. 상태가 비어 있으면 Unknown으로 표시됩니다.
+
 ## 작업 조작
 
 작업을 선택하면 상세 정보를 볼 수 있습니다. 작업을 길게 누르거나 우클릭하면 작업 메뉴가 열립니다.

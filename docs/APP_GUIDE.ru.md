@@ -110,6 +110,42 @@ qiuyuremote://x-callback-url/addTask?type=aria2&url=https%3A%2F%2Fexample.com%2F
 
 Для задач yt-dlp скрываются torrent-only поля, например скорость отдачи, объем отдачи, seeds, leechers и ratio.
 
+## Соответствие статусов задач
+
+В списке задач QiuyuRemote показывает нормализованный статус приложения. Если сервис загрузки возвращает исходный статус, приложение по возможности сохраняет и его. App учитывает нормализованный статус, исходный статус, прогресс, скорость передачи и уведомления автоматических правил. Поэтому завершенный torrent, остановленный правилом ratio или idle, может отображаться как Stopped с пояснением, а не просто как Complete.
+
+| Сервис | Статус сервиса или условие | Статус в App |
+| --- | --- | --- |
+| qBittorrent | `error`, `missingFiles` | Error |
+| qBittorrent | `pausedUP`, `stoppedUP`, `stalledUP`, `queuedUP` | Complete; при уведомлении автоматического правила может отображаться как Stopped |
+| qBittorrent | значения с `paused`, или `stoppedDL` | Paused |
+| qBittorrent | значения с `queued` | Waiting |
+| qBittorrent | значения с `checking`, `metadata`, `allocating`; также `filesChecked`, `metadataReceived` | Checking или Processing |
+| qBittorrent | значения с `uploading` или `forcedUP` | Seeding |
+| qBittorrent | значения с `stalled` | Stalled |
+| qBittorrent | значения с `downloading` или `forcedDL` | Downloading |
+| qBittorrent | `moving` | Moving |
+| Transmission | `error > 0` | Error |
+| Transmission | `0` | Stopped; если прогресс завершен, QiuyuRemote считает задачу Complete, кроме случаев с уведомлением автоматического правила |
+| Transmission | `1`, `2` | Checking |
+| Transmission | `3`, `4` | Downloading |
+| Transmission | `5`, `6` | Seeding |
+| aria2 | `active` | Downloading |
+| aria2 | `waiting` | Waiting |
+| aria2 | `paused` | Paused |
+| aria2 | `error` | Error |
+| aria2 | `complete` | Complete; при уведомлении автоматического правила может отображаться как Stopped |
+| aria2 | `removed` | Removed |
+| yt-dlp | `downloading`, `running` | Downloading |
+| yt-dlp | `postprocessing`, `processing`, `merge`, `fixup`, `metadata`, `extract`, `remux`, `convert` | Processing |
+| yt-dlp | `moving` | Moving |
+| yt-dlp | `completed` | Complete |
+| yt-dlp | `failed`, `error`, `lost` | Error |
+| yt-dlp | `paused` | Paused |
+| yt-dlp | `queued` | Waiting |
+
+Неизвестные значения показываются как исходный статус сервиса. Если сервис вернул пустой статус, отображается Unknown.
+
 ## Действия с задачами
 
 Выберите задачу, чтобы открыть детали. Долгое нажатие или правый клик по задаче открывает меню действий.

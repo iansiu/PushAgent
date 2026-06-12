@@ -13,6 +13,7 @@ All notable changes to QiuyuRemote PushAgent will be documented in this file.
 
 ### Improved
 - Improved download notification timing and wording for completed, failed, and long-running inactive tasks.
+- Documented the current QiuyuRemote app display status mapping for qBittorrent, Transmission, aria2, and yt-dlp.
 - Improved qBittorrent, Transmission, and aria2 monitoring so manual stop states and automatic-rule stop reasons are handled more consistently.
 - Improved yt-dlp filename cleanup, source URL handling, and downloaded-file deletion support.
 - Improved Push Relay pairing recovery and multi-device binding behavior from the Agent side.

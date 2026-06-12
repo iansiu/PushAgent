@@ -110,6 +110,42 @@ iPad 和 Mac 上，可以拖動表頭分隔線調整欄寬。名稱欄支援拉�
 
 yt-dlp 任務會隱藏上傳速度、上傳大小、種子、下載者、分享率等種子任務欄位。
 
+## 任務狀態映射
+
+QiuyuRemote 在任務列表裡顯示的是歸一化後的 App 狀態。下載服務有回傳原始狀態時，App 仍會盡量保留。App 會綜合歸一化狀態、原始狀態、進度、傳輸速度和自動規則提示；例如一個已經完成、但因為分享率或無活動規則停止的種子，可能顯示為「已停止」並帶有任務提示，而不是只顯示「已完成」。
+
+| 下載服務 | 服務狀態或條件 | App 顯示狀態 |
+| --- | --- | --- |
+| qBittorrent | `error`、`missingFiles` | 錯誤 |
+| qBittorrent | `pausedUP`、`stoppedUP`、`stalledUP`、`queuedUP` | 已完成；如果有自動規則提示，會顯示為已停止 |
+| qBittorrent | 包含 `paused`，或 `stoppedDL` | 已暫停 |
+| qBittorrent | 包含 `queued` | 等待中 |
+| qBittorrent | 包含 `checking`、`metadata`、`allocating`，以及 `filesChecked`、`metadataReceived` | 校驗中或處理中 |
+| qBittorrent | 包含 `uploading` 或 `forcedUP` | 做種中 |
+| qBittorrent | 包含 `stalled` | 停滯 |
+| qBittorrent | 包含 `downloading` 或 `forcedDL` | 下載中 |
+| qBittorrent | `moving` | 正在整理檔案 |
+| Transmission | `error > 0` | 錯誤 |
+| Transmission | `0` | 已停止；如果進度已完成，QiuyuRemote 會按已完成處理，除非存在自動規則提示 |
+| Transmission | `1`、`2` | 校驗中 |
+| Transmission | `3`、`4` | 下載中 |
+| Transmission | `5`、`6` | 做種中 |
+| aria2 | `active` | 下載中 |
+| aria2 | `waiting` | 等待中 |
+| aria2 | `paused` | 已暫停 |
+| aria2 | `error` | 錯誤 |
+| aria2 | `complete` | 已完成；如果有自動規則提示，會顯示為已停止 |
+| aria2 | `removed` | 已移除 |
+| yt-dlp | `downloading`、`running` | 下載中 |
+| yt-dlp | `postprocessing`、`processing`、`merge`、`fixup`、`metadata`、`extract`、`remux`、`convert` | 處理中 |
+| yt-dlp | `moving` | 正在整理檔案 |
+| yt-dlp | `completed` | 已完成 |
+| yt-dlp | `failed`、`error`、`lost` | 錯誤 |
+| yt-dlp | `paused` | 已暫停 |
+| yt-dlp | `queued` | 等待中 |
+
+其它無法識別的狀態會直接顯示下載服務回傳的原始狀態；如果服務回傳空狀態，則顯示為未知。
+
 ## 任務操作
 
 點擊任務可以查看詳情。長按或右鍵任務可以開啟任務選單：

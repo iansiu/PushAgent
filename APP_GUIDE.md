@@ -110,6 +110,42 @@ On iPad and Mac, table columns can be resized by dragging the boundary in the he
 
 yt-dlp tasks hide torrent-only fields such as upload speed, uploaded size, seeds, leechers, and share ratio.
 
+## Task Status Mapping
+
+QiuyuRemote shows a normalized app status in the task list. The original service status is still kept when the download service provides it. The app combines normalized status, raw status, progress, transfer speed, and automatic-rule notices, so a completed torrent stopped by a share-ratio or idle rule can show Stopped with a notice instead of plain Complete.
+
+| Service | Service status or condition | App display status |
+| --- | --- | --- |
+| qBittorrent | `error`, `missingFiles` | Error |
+| qBittorrent | `pausedUP`, `stoppedUP`, `stalledUP`, `queuedUP` | Complete; automatic-rule notices can show it as Stopped |
+| qBittorrent | values containing `paused`, or `stoppedDL` | Paused |
+| qBittorrent | values containing `queued` | Waiting |
+| qBittorrent | values containing `checking`, `metadata`, or `allocating`; also `filesChecked`, `metadataReceived` | Checking or Processing |
+| qBittorrent | values containing `uploading` or `forcedUP` | Seeding |
+| qBittorrent | values containing `stalled` | Stalled |
+| qBittorrent | values containing `downloading` or `forcedDL` | Downloading |
+| qBittorrent | `moving` | Moving |
+| Transmission | `error > 0` | Error |
+| Transmission | `0` | Stopped; if progress is complete, QiuyuRemote treats it as Complete unless an automatic-rule notice applies |
+| Transmission | `1`, `2` | Checking |
+| Transmission | `3`, `4` | Downloading |
+| Transmission | `5`, `6` | Seeding |
+| aria2 | `active` | Downloading |
+| aria2 | `waiting` | Waiting |
+| aria2 | `paused` | Paused |
+| aria2 | `error` | Error |
+| aria2 | `complete` | Complete; automatic-rule notices can show it as Stopped |
+| aria2 | `removed` | Removed |
+| yt-dlp | `downloading`, `running` | Downloading |
+| yt-dlp | `postprocessing`, `processing`, `merge`, `fixup`, `metadata`, `extract`, `remux`, `convert` | Processing |
+| yt-dlp | `moving` | Moving |
+| yt-dlp | `completed` | Complete |
+| yt-dlp | `failed`, `error`, `lost` | Error |
+| yt-dlp | `paused` | Paused |
+| yt-dlp | `queued` | Waiting |
+
+Other unknown values are shown as the raw service status, or as Unknown if the service returns an empty status.
+
 ## Task Actions
 
 Select a task to view details. Long-press or right-click a task to open task actions:
