@@ -24,13 +24,21 @@ Push Agent 只用于服务器端后台能力：
 | yt-dlp Cookie 管理 | 需要 |
 | 从其它 App 分享视频链接到 QiuyuRemote 后远程 yt-dlp 下载 | 需要 |
 
-## 免费版和 Pro
+## 免费版和 Pro 版
 
-QiuyuRemote 按“免费下载 + 可选内购”的方式设计。免费版应该保留核心的直连下载管理能力，Pro 用来解锁高级能力，而不是在 App 启动时直接把整个 App 锁住。
+QiuyuRemote 可以免费下载和使用。免费版适合基础远程下载管理：你可以连接已有的 qBittorrent、Transmission 或 aria2 服务器，查看任务，添加下载，暂停、继续或删除任务。
 
-购买状态通过 StoreKit 2 验证。QiuyuRemote 会在启动时检查当前 App Store 权益，监听交易更新，也可以在设置页的订阅区域恢复购买。
+Pro 版适合需要更完整远程管理能力的用户。购买 Pro 后，可以解锁：
 
-QiuyuRemote 会在本机钥匙串里生成一个随机的购买设备 ID。它不是 Apple ID、APNs token、PushAgent ID，也不是任何下载服务器凭据。如果之后增加服务器端激活数量限制，服务器应该把这个设备 ID 绑定到已验证的 App Store 购买交易，而不是使用 “Home Agent” 这类可以随便改的名称。
+- yt-dlp 下载
+- yt-dlp Cookie 管理，用于需要登录的网站内容
+- 通过 Push Agent 接收远程下载通知
+- iCloud 同步服务器配置和 App 设置
+- 离线库和离线任务管理
+- WebDAV 播放和文件访问
+- 下载完成通知
+- 高级服务器设置
+- 使用 yt-dlp 服务，并混用 aria2/qBittorrent/Transmission，而不是只能使用一种直连下载服务类型
 
 Pro 状态和 Push Agent 配对是两件事。购买 Pro 不会自动完成 Agent 配对，完成 Agent 配对也不代表存在 Pro 购买。
 
