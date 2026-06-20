@@ -31,6 +31,7 @@ const sessionState = new Map();
 const activeMonitorServers = new Set();
 const aria2EventClients = new Map();
 const runtimeEvents = [];
+const recentPushEventKeys = new Map();
 const PROCESS_STARTED_AT = new Date().toISOString();
 const DEFAULT_INACTIVE_DOWNLOAD_NOTICE_SECONDS = 30 * 60;
 const AGENT_FAVICON_ICO = createFaviconICO("agent");
@@ -812,6 +813,7 @@ async function handleTask(server, task, options = {}) {
   store.setTask(key, { ...next, lastEventStatus: previousLastEventStatus });
   if (task.status === "completed" && previousLastEventStatus !== "completed") {
     state.lastEventSummary = `${new Date().toISOString()} download_completed ${server.id}:${task.id} "${task.name}"`;
+    store.setTask(key, { ...next, lastEventStatus: "completed" });
     const delivery = await sendPushEvent({
       type: "download_completed",
       title: downloadNotificationTitle("completed"),
@@ -820,11 +822,9 @@ async function handleTask(server, task, options = {}) {
       task: next
     });
     state.lastPushSummary = pushSummary("download_completed", delivery);
-    if (delivery.ok) {
-      store.setTask(key, { ...next, lastEventStatus: "completed" });
-    }
   } else if (task.status === "failed" && previousLastEventStatus !== "failed") {
     state.lastEventSummary = `${new Date().toISOString()} task_failed ${server.id}:${task.id} "${task.name}"`;
+    store.setTask(key, { ...next, lastEventStatus: "failed" });
     const delivery = await sendPushEvent({
       type: "task_failed",
       title: downloadNotificationTitle("failed"),
@@ -833,12 +833,10 @@ async function handleTask(server, task, options = {}) {
       task: next
     });
     state.lastPushSummary = pushSummary("task_failed", delivery);
-    if (delivery.ok) {
-      store.setTask(key, { ...next, lastEventStatus: "failed" });
-    }
   } else if (shouldSendTaskStoppedNotice(next, previous, previousLastEventStatus)) {
     const eventStatus = stopNoticeEventStatus(next.stopNotice);
     state.lastEventSummary = `${new Date().toISOString()} task_stopped ${server.id}:${task.id} "${task.name}"`;
+    store.setTask(key, { ...next, lastEventStatus: eventStatus });
     const delivery = await sendPushEvent({
       type: "task_stopped",
       title: downloadNotificationTitle("stopped"),
@@ -847,9 +845,6 @@ async function handleTask(server, task, options = {}) {
       task: next
     });
     state.lastPushSummary = pushSummary("task_stopped", delivery);
-    if (delivery.ok) {
-      store.setTask(key, { ...next, lastEventStatus: eventStatus });
-    }
   } else if (shouldSendInactiveDownloadNotice(server, task, next, previous, state, options)) {
     const inactiveSeconds = inactiveDownloadNoticeSeconds();
     state.lastEventSummary = `${new Date().toISOString()} download_inactive ${server.id}:${task.id} "${task.name}"`;
@@ -1194,11 +1189,18 @@ async function sendPushEvent(event) {
     console.warn("Push Agent is not paired with Push Relay; skipping push event.");
     return { ok: false, message: "Push Agent is not paired with Push Relay." };
   }
-  const eventId = `${event.type}:${event.server.id}:${event.task?.id || Date.now()}:${Date.now()}`;
+  const eventKey = pushEventKey(event);
+  if (!reserveRecentPushEvent(eventKey)) {
+    console.log(`[${event.server.id}] duplicate push event suppressed: ${eventKey}`);
+    return { ok: true, accepted: true, sent: 0, failed: 0, duplicate: true, message: "Duplicate push event suppressed." };
+  }
+  const eventId = eventKey;
   try {
     console.log(`[${event.server.id}] sending push event ${event.type}${event.task ? ` for "${event.task.name}"` : ""}.`);
     const result = await relay.sendEvent({
       eventId,
+      collapseId: pushCollapseId(eventKey),
+      deeplink: deeplinkForEvent(event),
       occurredAt: new Date().toISOString(),
       ...event
     }, identity);
@@ -1234,6 +1236,55 @@ async function sendPushEvent(event) {
     console.error(`[${event.server.id}] push event ${event.type} failed: ${error.message || error}`);
     return { ok: false, accepted: false, message: error.message || "Push event failed." };
   }
+}
+
+function pushEventKey(event) {
+  return [
+    event.type || "event",
+    event.server?.id || "server",
+    event.task?.id || "",
+    event.type === "task_stopped" ? event.task?.noticeMessage || "" : ""
+  ].map(pushEventKeyPart).filter(Boolean).join(":");
+}
+
+function pushEventKeyPart(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/:/g, "_")
+    .slice(0, 96);
+}
+
+function reserveRecentPushEvent(eventKey) {
+  const now = Date.now();
+  const windowMs = 15_000;
+  for (const [key, timestamp] of recentPushEventKeys) {
+    if (now - timestamp > windowMs) {
+      recentPushEventKeys.delete(key);
+    }
+  }
+  const previous = recentPushEventKeys.get(eventKey);
+  if (previous && now - previous <= windowMs) {
+    return false;
+  }
+  recentPushEventKeys.set(eventKey, now);
+  return true;
+}
+
+function pushCollapseId(eventKey) {
+  return String(eventKey || "qiuyuremote")
+    .replace(/[^A-Za-z0-9._:-]/g, "_")
+    .slice(0, 64);
+}
+
+function deeplinkForEvent(event) {
+  const params = new URLSearchParams();
+  if (event.server?.id) params.set("server", event.server.id);
+  if (event.server?.name) params.set("serverName", event.server.name);
+  if (event.server?.type) params.set("type", event.server.type);
+  if (event.task?.id) params.set("task", event.task.id);
+  const query = params.toString();
+  return `qiuyuremote://open${query ? `?${query}` : ""}`;
 }
 
 function pushSummary(type, delivery) {
