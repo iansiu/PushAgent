@@ -157,6 +157,7 @@ yt-dlp:
   "format": "bv*+ba/b",
   "outputTemplate": "%(title).80B.%(ext)s",
   "cookiesPath": "",
+  "cookiesDir": "./data/ytdlp-cookies/default",
   "proxy": "",
   "requireCookiesForYoutube": false,
   "cleanHashtags": true,
@@ -170,13 +171,19 @@ yt-dlp:
 
 先にサーバーへ yt-dlp をインストールしてください。既定の `format` が `bv*+ba/b` の場合、動画と音声の結合に ffmpeg が必要になることがあります。診断結果には `ytDlpVersion`、`ffmpegAvailable`、`ffmpegVersion` が表示されます。
 
-YouTube など一部のサイトはログイン Cookie を要求する場合があります。これは Push Agent の障害ではなく、yt-dlp 側の認証要求です。ログイン済みブラウザから Netscape 形式の `cookies.txt` をエクスポートし、サーバーにアップロードして、`cookiesPath` に絶対パスを設定してください。
+YouTube など一部のサイトはログイン Cookie を要求する場合があります。これは Push Agent の障害ではなく、yt-dlp 側の認証要求です。ログイン済みブラウザから Netscape 形式の `cookies.txt` をエクスポートし、QiuyuRemote の Cookie 管理でインポートするか、サーバーへアップロードして `cookiesPath` に絶対パスを設定してください。
 
 ```json
 "cookiesPath": "/root/PushAgent/cookies/all-cookies.txt"
 ```
 
 1 つの Cookie ファイルに複数ドメインの Cookie を入れることができます。yt-dlp は URL に合う Cookie だけを使います。Cookie ファイルは公開しないでください。
+
+Cookie の選択順は、タスクで明示された `cookiesPath`、QiuyuRemote にインポートされ `cookiesDir` に保存された該当サイトの Cookie、`config.json` の fallback `cookiesPath`、Cookie なし、の順です。つまり、アプリにインポートしたサイト Cookie は設定ファイルより優先されます。インポート済みファイルが空、期限切れ、または無効な場合、タスクは Cookie エラーになり、設定ファイルへ静かにフォールバックしません。fallback `cookiesPath` を使い直したい場合は、アプリ側の該当サイト Cookie を更新または削除してください。
+
+デスクトップブラウザーでは `Get cookies.txt LOCALLY` 拡張機能で標準 Netscape 形式の Cookie ファイルをエクスポートできます。iOS では Microsoft Edge と `Cookie-Editor` 拡張機能を使い、Export Format を `Netscape` に設定して現在サイトの Cookie をコピーし、`Create a new cookie file` ショートカットを実行できます: `https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`。ショートカットは `On My iPhone/Downloads` に Cookie ファイルを作成し、QiuyuRemote に直接インポートできます。
+
+QiuyuRemote に表示される Cookie の有効期限は推定値です。実際に使えるかどうかは、ログアウト、パスワード変更、アカウント保護、サーバー IP/地域の変化、サイト側の無効化、レート制限、yt-dlp extractor の変更などにも影響されます。
 
 YouTube では、署名と `n` challenge を解くために yt-dlp の外部 JavaScript サポートが必要になることがあります。Deno をインストールし、現在の shell と systemd の両方から見える場所に置いてください。
 
@@ -437,9 +444,10 @@ Push Relay がイベントを受け付けても通知を受け取るデバイス
 | `servers[].historyLimit` | yt-dlp のみ。Push Agent が保持するタスク履歴数。既定は `1000` です。 |
 | `servers[].format` | yt-dlp のみ。既定の format selector。 |
 | `servers[].outputTemplate` | yt-dlp のみ。出力ファイル名テンプレート。既定では `%(title).80B.%(ext)s` を使いタイトルを短くします。 |
-| `servers[].cookiesPath` | yt-dlp のみ。ログイン Cookie が必要なサイト用の Cookie ファイルパス。 |
+| `servers[].cookiesPath` | yt-dlp のみ。タスク指定やアプリにインポートされたサイト Cookie がない場合に使う fallback の Netscape Cookie ファイル。 |
+| `servers[].cookiesDir` | yt-dlp のみ。QiuyuRemote Cookie 管理がサイト別 Cookie を保存するディレクトリ。既定は `data/ytdlp-cookies/<storageKey>` です。 |
 | `servers[].proxy` | yt-dlp のみ。yt-dlp に渡す proxy。 |
-| `servers[].requireCookiesForYoutube` | yt-dlp のみ。`true` の場合、Cookie 未設定の YouTube URL は早めにわかりやすいエラーになります。 |
+| `servers[].requireCookiesForYoutube` | yt-dlp のみ。`true` の場合、タスク指定、アプリインポート、fallback のいずれにも Cookie がない YouTube URL は早めにわかりやすいエラーになります。 |
 | `servers[].cleanHashtags` | yt-dlp のみ。既定は `true`。ファイル名生成前にタイトル末尾の hashtag テキストを除去します。 |
 | `servers[].maxConcurrent` | yt-dlp のみ。同時実行する yt-dlp プロセス数。既定は `10`。 |
 | `servers[].noPlaylist` | yt-dlp のみ。既定は `true`。1 つの URL がプレイリスト全体に展開されるのを防ぎます。 |

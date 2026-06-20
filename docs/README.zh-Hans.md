@@ -157,6 +157,7 @@ yt-dlp 示例：
   "format": "bv*+ba/b",
   "outputTemplate": "%(title).80B.%(ext)s",
   "cookiesPath": "",
+  "cookiesDir": "./data/ytdlp-cookies/default",
   "proxy": "",
   "requireCookiesForYoutube": false,
   "cleanHashtags": true,
@@ -170,13 +171,19 @@ yt-dlp 示例：
 
 先在服务器安装 yt-dlp。如果保留默认 `format` 为 `bv*+ba/b`，也建议安装 ffmpeg，因为很多网站会把视频和音频分开下载后再合并。诊断接口会显示 `ytDlpVersion`、`ffmpegAvailable`、`ffmpegVersion`。
 
-一些网站，尤其是 YouTube，可能需要登录 Cookie。这不是 Push Agent 故障，而是 yt-dlp 需要认证。你可以从已登录的浏览器导出 Netscape 格式的 `cookies.txt`，上传到服务器，然后把 `cookiesPath` 设置为服务器上的绝对路径，例如：
+一些网站，尤其是 YouTube，可能需要登录 Cookie。这不是 Push Agent 故障，而是 yt-dlp 需要认证。你可以从已登录的浏览器导出 Netscape 格式的 `cookies.txt`，然后在 QiuyuRemote 的 Cookie 管理中导入，或把文件上传到服务器并将 `cookiesPath` 设置为服务器上的绝对路径，例如：
 
 ```json
 "cookiesPath": "/root/PushAgent/cookies/all-cookies.txt"
 ```
 
 一个 Netscape 格式 Cookie 文件可以包含多个域名的 Cookie，yt-dlp 会按 URL 自动使用对应域名的 Cookie。Cookie 文件请妥善保管，不要公开。
+
+Cookie 使用优先级为：任务单独指定的 `cookiesPath`、QiuyuRemote 中导入并保存在 `cookiesDir` 下的对应站点 Cookie、`config.json` 里的备用 `cookiesPath`、不使用 Cookie。也就是说，App 里导入的站点 Cookie 优先级高于配置文件。如果导入的文件为空、过期或无效，任务会报 Cookie 错误，而不会悄悄回退到配置文件；如果想重新使用备用 `cookiesPath`，请更新或删除 App 里导入的站点 Cookie。
+
+桌面浏览器可以使用 `Get cookies.txt LOCALLY` 插件导出标准 Netscape 格式 Cookie 文件。iOS 上可以使用 Microsoft Edge 浏览器配合 `Cookie-Editor` 插件，在插件设置里把 Export Format 设置为 `Netscape`，复制当前网站 Cookie，然后运行 `Create a new cookie file` 捷径：`https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`。捷径会在 `On My iPhone/Downloads` 目录生成 Cookie 文件，可直接在 QiuyuRemote 中导入。
+
+QiuyuRemote 中显示的 Cookie 有效期只是估算。实际能否继续使用还会受到退出登录、修改密码、账号安全检查、服务器 IP/地区变化、网站主动失效、限流，以及 yt-dlp 解析器变化等因素影响。
 
 YouTube 还可能需要 yt-dlp 的外部 JavaScript 支持，用来解析签名和 `n` challenge。先安装 Deno，并确保当前 shell 和 systemd 都能找到它：
 
@@ -441,9 +448,10 @@ Agent 会发送这些事件：
 | `servers[].historyLimit` | 仅 yt-dlp。Push Agent 保留的任务历史数量，默认 `1000`。 |
 | `servers[].format` | 仅 yt-dlp。默认格式选择器。 |
 | `servers[].outputTemplate` | 仅 yt-dlp。输出文件名模板。默认使用 `%(title).80B.%(ext)s` 缩短标题。 |
-| `servers[].cookiesPath` | 仅 yt-dlp。需要登录 Cookie 的网站可填写 Cookie 文件路径。 |
+| `servers[].cookiesPath` | 仅 yt-dlp。备用 Netscape 格式 Cookie 文件；当任务没有单独指定、App 也没有导入对应站点 Cookie 时使用。 |
+| `servers[].cookiesDir` | 仅 yt-dlp。QiuyuRemote Cookie 管理保存站点 Cookie 的目录，默认 `data/ytdlp-cookies/<storageKey>`。 |
 | `servers[].proxy` | 仅 yt-dlp。传给 yt-dlp 的代理地址。 |
-| `servers[].requireCookiesForYoutube` | 仅 yt-dlp。若为 `true`，YouTube URL 在未配置 Cookie 时会提前返回友好错误。 |
+| `servers[].requireCookiesForYoutube` | 仅 yt-dlp。若为 `true`，YouTube URL 在任务、App 导入和备用配置都没有 Cookie 时会提前返回友好错误。 |
 | `servers[].cleanHashtags` | 仅 yt-dlp。默认 `true`，生成文件名前移除标题末尾 hashtag 文本。 |
 | `servers[].maxConcurrent` | 仅 yt-dlp。最大并发 yt-dlp 进程数，默认 `10`。 |
 | `servers[].noPlaylist` | 仅 yt-dlp。默认 `true`，避免单个 URL 自动展开成播放列表下载。 |

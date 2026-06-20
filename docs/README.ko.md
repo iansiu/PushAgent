@@ -157,6 +157,7 @@ yt-dlp:
   "format": "bv*+ba/b",
   "outputTemplate": "%(title).80B.%(ext)s",
   "cookiesPath": "",
+  "cookiesDir": "./data/ytdlp-cookies/default",
   "proxy": "",
   "requireCookiesForYoutube": false,
   "cleanHashtags": true,
@@ -170,13 +171,19 @@ yt-dlp:
 
 먼저 서버에 yt-dlp를 설치하세요. 기본 `format` 값인 `bv*+ba/b`를 유지하면 일부 사이트에서 비디오와 오디오를 병합하기 위해 ffmpeg가 필요할 수 있습니다. 진단 결과에는 `ytDlpVersion`, `ffmpegAvailable`, `ffmpegVersion`이 표시됩니다.
 
-YouTube 같은 일부 사이트는 로그인 Cookie가 필요할 수 있습니다. 이는 Push Agent 문제가 아니라 yt-dlp의 인증 요구입니다. 로그인된 브라우저에서 Netscape 형식 `cookies.txt`를 내보내고 서버에 업로드한 뒤 `cookiesPath`에 절대 경로를 입력하세요.
+YouTube 같은 일부 사이트는 로그인 Cookie가 필요할 수 있습니다. 이는 Push Agent 문제가 아니라 yt-dlp의 인증 요구입니다. 로그인된 브라우저에서 Netscape 형식 `cookies.txt`를 내보낸 뒤 QiuyuRemote Cookie 관리에서 가져오거나, 서버에 업로드하고 `cookiesPath`에 절대 경로를 입력하세요.
 
 ```json
 "cookiesPath": "/root/PushAgent/cookies/all-cookies.txt"
 ```
 
 하나의 Netscape Cookie 파일에 여러 도메인의 Cookie를 넣을 수 있으며, yt-dlp는 URL에 맞는 Cookie만 사용합니다. Cookie 파일은 공개하지 마세요.
+
+Cookie 선택 순서는 작업에서 명시한 `cookiesPath`, QiuyuRemote에 가져와 `cookiesDir`에 저장된 해당 사이트 Cookie, `config.json`의 fallback `cookiesPath`, Cookie 없음 순서입니다. 즉, 앱에서 가져온 사이트 Cookie가 설정 파일보다 우선합니다. 가져온 파일이 비어 있거나 만료되었거나 잘못된 경우 작업은 Cookie 오류로 실패하며 설정 파일로 조용히 fallback하지 않습니다. fallback `cookiesPath`를 다시 사용하려면 앱의 해당 사이트 Cookie를 업데이트하거나 삭제하세요.
+
+데스크톱 브라우저에서는 `Get cookies.txt LOCALLY` 확장 프로그램으로 표준 Netscape 형식 Cookie 파일을 내보낼 수 있습니다. iOS에서는 Microsoft Edge와 `Cookie-Editor` 확장 프로그램을 사용하고 Export Format을 `Netscape`로 설정해 현재 사이트 Cookie를 복사한 뒤 `Create a new cookie file` 단축어를 실행할 수 있습니다: `https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`. 이 단축어는 `On My iPhone/Downloads`에 Cookie 파일을 만들며 QiuyuRemote에서 바로 가져올 수 있습니다.
+
+QiuyuRemote에 표시되는 Cookie 만료일은 예상값입니다. 실제 사용 가능 여부는 로그아웃, 비밀번호 변경, 계정 보안 검사, 서버 IP/지역 변경, 사이트 측 무효화, 속도 제한, yt-dlp extractor 변경 등의 영향을 받을 수 있습니다.
 
 YouTube는 서명과 `n` challenge를 풀기 위해 yt-dlp의 외부 JavaScript 지원이 필요할 수 있습니다. Deno를 설치하고 현재 shell과 systemd가 모두 찾을 수 있게 만드세요.
 
@@ -437,9 +444,10 @@ Push Relay가 이벤트를 받았지만 알림을 받을 기기가 0대인 경�
 | `servers[].historyLimit` | yt-dlp 전용입니다. Push Agent가 보관하는 작업 기록 수입니다. 기본값은 `1000`입니다. |
 | `servers[].format` | yt-dlp 전용입니다. 기본 format selector입니다. |
 | `servers[].outputTemplate` | yt-dlp 전용입니다. 출력 파일명 템플릿입니다. 기본값은 `%(title).80B.%(ext)s`로 제목을 짧게 유지합니다. |
-| `servers[].cookiesPath` | yt-dlp 전용입니다. 로그인 Cookie가 필요한 사이트용 Cookie 파일 경로입니다. |
+| `servers[].cookiesPath` | yt-dlp 전용입니다. 작업별 또는 앱에서 가져온 사이트 Cookie가 없을 때 사용하는 fallback Netscape Cookie 파일입니다. |
+| `servers[].cookiesDir` | yt-dlp 전용입니다. QiuyuRemote Cookie 관리가 사이트별 Cookie를 저장하는 디렉터리입니다. 기본값은 `data/ytdlp-cookies/<storageKey>`입니다. |
 | `servers[].proxy` | yt-dlp 전용입니다. yt-dlp에 전달할 proxy입니다. |
-| `servers[].requireCookiesForYoutube` | yt-dlp 전용입니다. `true`이면 Cookie가 없는 YouTube URL에 대해 일찍 친절한 오류를 반환합니다. |
+| `servers[].requireCookiesForYoutube` | yt-dlp 전용입니다. `true`이면 작업별, 앱 가져오기, fallback Cookie가 모두 없는 YouTube URL에 대해 일찍 친절한 오류를 반환합니다. |
 | `servers[].cleanHashtags` | yt-dlp 전용입니다. 기본값은 `true`이며 파일명 생성 전에 제목 끝의 hashtag 텍스트를 제거합니다. |
 | `servers[].maxConcurrent` | yt-dlp 전용입니다. 동시에 실행할 yt-dlp 프로세스 수입니다. 기본값은 `10`입니다. |
 | `servers[].noPlaylist` | yt-dlp 전용입니다. 기본값은 `true`이며 하나의 URL이 전체 재생목록 다운로드로 확장되는 것을 막습니다. |

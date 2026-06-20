@@ -197,6 +197,7 @@ yt-dlp example:
   "format": "bv*+ba/b",
   "outputTemplate": "%(title).80B.%(ext)s",
   "cookiesPath": "",
+  "cookiesDir": "./data/ytdlp-cookies/default",
   "proxy": "",
   "requireCookiesForYoutube": false,
   "cleanHashtags": true,
@@ -244,10 +245,20 @@ Useful yt-dlp options:
 - `outputTemplate`: default filename template. The default omits yt-dlp's media
   id suffix. A per-task output filename entered in QiuyuRemote overrides this
   value.
-- `cookiesPath`: optional Netscape-format cookies file path on the Agent server.
-  A per-task cookies path entered in QiuyuRemote overrides this value.
+- `cookiesPath`: optional fallback Netscape-format cookies file path on the
+  Agent server. It is used only when a task does not provide an explicit cookie
+  path and no matching site cookie has been imported from QiuyuRemote. This can
+  be a single file such as `/root/PushAgent/cookies/all-cookies.txt` containing
+  cookies for several domains.
+- `cookiesDir`: optional directory where QiuyuRemote Cookie Management stores
+  site-specific cookies for this yt-dlp service. If omitted, Push Agent uses
+  `data/ytdlp-cookies/<storageKey>`. Imported files use stable names such as
+  `youtube.txt`, `tiktok.txt`, `douyin.txt`, `bilibili.txt`, and `others.txt`.
 - `proxy`: optional proxy URL. A per-task proxy entered in QiuyuRemote overrides
   this value.
+- `requireCookiesForYoutube`: if `true`, YouTube URLs fail early with a clear
+  cookie-required error when no task, imported YouTube, or fallback cookie file
+  is available.
 - `extraArgs`: advanced yt-dlp arguments as a JSON array, for example
   `["--merge-output-format", "mp4"]`. The Agent passes these as a spawn argument
   array, not a shell string. Arguments controlled by QiuyuRemote, such as
@@ -257,18 +268,49 @@ Useful yt-dlp options:
 Some sites, especially YouTube, may require login cookies. This is not a
 QiuyuRemote or Push Agent failure; it is yt-dlp asking for authentication.
 Export a Netscape-format `cookies.txt` from a browser where the account is
-already logged in, upload that file to the Agent server, then set
-`cookiesPath` to the absolute server path, for example
+already logged in, then either import it in QiuyuRemote Cookie Management or set
+`cookiesPath` to an absolute server path such as
 `"/root/PushAgent/cookies/youtube.txt"`. Restart the Agent after changing the
-config. A single Netscape-format cookies file can contain cookies for multiple
-domains; yt-dlp will use only the matching domain cookies for each submitted URL.
-For a personal server this is usually the simplest setup, for example
-`"/root/PushAgent/cookies/all-cookies.txt"`. If you prefer to keep sites
-separate, configure multiple yt-dlp service blocks with different `name` values
-and different `cookiesPath` files, such as `youtube.txt`, `tiktok.txt`, and
-`bilibili.txt`. Keep all cookies files private because they can grant access to
-browser sessions. If you want YouTube downloads to fail early whenever cookies
-are not configured, set `requireCookiesForYoutube` to `true`.
+config file. A single Netscape-format cookie file can contain cookies for
+multiple domains; yt-dlp will use only the cookies matching each submitted URL.
+
+Cookie selection order is:
+
+1. A per-task `cookiesPath` explicitly submitted by QiuyuRemote.
+2. A site cookie imported in QiuyuRemote Cookie Management and stored under
+   `cookiesDir`, for example `youtube.txt`.
+3. The fallback `cookiesPath` from `config.json`.
+4. No cookies.
+
+This means an imported site cookie in the app has higher priority than
+`config.json`'s `cookiesPath`. If that imported file is empty, expired, or
+invalid, the task will fail with a cookie error instead of silently falling back
+to the config file. Update or remove the imported site cookie when you want to
+use the fallback file again.
+
+On desktop browsers, the `Get cookies.txt LOCALLY` extension can export a
+standard Netscape-format cookie file when the browser supports it. On iOS, you
+can use Microsoft Edge with the `Cookie-Editor` extension, set the extension's
+Export Format to `Netscape`, copy the current site's cookies to the clipboard,
+then run the `Create a new cookie file` Shortcut:
+`https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`. The
+Shortcut creates a cookie file in `On My iPhone/Downloads`, which you can then
+import directly in QiuyuRemote.
+
+Keep all cookie files private because they can grant access to browser sessions.
+The expiration shown in QiuyuRemote is only an estimate from the cookie file.
+Real availability can change earlier because of logout, password changes,
+account security checks, server IP/location changes, site-side invalidation,
+rate limits, or yt-dlp extractor changes. If downloads start failing, re-export
+and re-import the cookie file.
+
+For a personal server, a single fallback file such as
+`"/root/PushAgent/cookies/all-cookies.txt"` is usually the simplest config. If
+you prefer to keep sites separate at the config level, create multiple yt-dlp
+service blocks with different `name` values and different `cookiesPath` files,
+such as `youtube.txt`, `tiktok.txt`, and `bilibili.txt`. If you want YouTube
+downloads to fail early whenever no cookie source is available, set
+`requireCookiesForYoutube` to `true`.
 
 YouTube may also require yt-dlp's external JavaScript support for signature and
 `n` challenge solving. Install Deno, make it visible to both your shell and
@@ -598,9 +640,10 @@ are paired.
 | `servers[].historyLimit` | yt-dlp only. Number of task history records retained by Push Agent. Default `1000`. |
 | `servers[].format` | yt-dlp only. Optional default format selector. |
 | `servers[].outputTemplate` | yt-dlp only. Output filename template. The default keeps titles shorter with `%(title).80B.%(ext)s`. |
-| `servers[].cookiesPath` | yt-dlp only. Optional cookies file path for sites that require login cookies. |
+| `servers[].cookiesPath` | yt-dlp only. Optional fallback Netscape-format cookie file used when no task-specific or App-imported site cookie is available. |
+| `servers[].cookiesDir` | yt-dlp only. Directory used by QiuyuRemote Cookie Management for site-specific cookie files. Defaults to `data/ytdlp-cookies/<storageKey>`. |
 | `servers[].proxy` | yt-dlp only. Optional proxy passed to yt-dlp. |
-| `servers[].requireCookiesForYoutube` | yt-dlp only. If `true`, YouTube URLs fail with a friendly cookie-required error when `cookiesPath` is empty. |
+| `servers[].requireCookiesForYoutube` | yt-dlp only. If `true`, YouTube URLs fail with a friendly cookie-required error when no task, imported, or fallback cookie file is available. |
 | `servers[].cleanHashtags` | yt-dlp only. Default `true`; removes trailing hashtag text from titles before filenames are generated. |
 | `servers[].maxConcurrent` | yt-dlp only. Maximum active yt-dlp processes for this Agent service. Default `10`. |
 | `servers[].noPlaylist` | yt-dlp only. Default `true`; keeps one submitted URL from expanding into a playlist unless explicitly disabled. |

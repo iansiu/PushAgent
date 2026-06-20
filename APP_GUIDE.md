@@ -202,6 +202,12 @@ Cookie Management is per yt-dlp PushAgent server. Cookies are uploaded directly 
 
 Use Netscape-format `cookies.txt` files exported from a browser. Cookies are website login credentials, so do not share them.
 
+On desktop browsers, the `Get cookies.txt LOCALLY` extension can export a standard Netscape-format cookie file when supported by the browser. On iOS, you can use Microsoft Edge with the `Cookie-Editor` extension, set Export Format to `Netscape`, copy the current site's cookies to the clipboard, then run the `Create a new cookie file` Shortcut: `https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`. The Shortcut creates a cookie file in `On My iPhone/Downloads`, which can be imported directly in QiuyuRemote.
+
+For each yt-dlp task, PushAgent uses cookies in this order: a task-specific cookies path, the matching site cookie imported in QiuyuRemote, then the fallback `cookiesPath` from PushAgent `config.json`. An imported site cookie in the app has higher priority than the config file.
+
+The expiration shown in QiuyuRemote is only an estimate based on the cookie file. Cookies can stop working earlier because of logout, password changes, account security checks, server IP/location changes, site-side invalidation, rate limits, or yt-dlp extractor changes.
+
 If YouTube or another site says login or cookies are required, import or update the matching site cookie in Cookie Management. YouTube may also require yt-dlp updates, ffmpeg, and a JavaScript runtime such as Deno for current signature challenge handling.
 
 ## Sync And Privacy

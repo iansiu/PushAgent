@@ -202,6 +202,12 @@ Cookie 관리는 yt-dlp PushAgent 서버별로 분리됩니다. Cookie는 선택
 
 브라우저에서 내보낸 Netscape 형식 `cookies.txt` 파일을 사용하세요. Cookie는 웹사이트 로그인 자격 증명과 같으므로 다른 사람과 공유하지 마세요.
 
+데스크톱 브라우저에서는 브라우저가 지원하는 경우 `Get cookies.txt LOCALLY` 확장 프로그램으로 표준 Netscape 형식 Cookie 파일을 내보낼 수 있습니다. iOS에서는 Microsoft Edge와 `Cookie-Editor` 확장 프로그램을 사용하고, 확장 프로그램 설정에서 Export Format을 `Netscape`로 설정한 뒤 현재 사이트의 Cookie를 클립보드에 복사하고 `Create a new cookie file` 단축어를 실행할 수 있습니다: `https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`. 이 단축어는 `On My iPhone/Downloads`에 Cookie 파일을 만들며, QiuyuRemote에서 바로 가져올 수 있습니다.
+
+각 yt-dlp 작업에서 Cookie를 선택하는 우선순위는 작업별 cookies path, QiuyuRemote에 가져온 해당 사이트 Cookie, PushAgent `config.json`의 fallback `cookiesPath` 순서입니다. 즉, 앱에서 가져온 사이트 Cookie가 설정 파일보다 우선합니다.
+
+QiuyuRemote에 표시되는 Cookie 만료일은 Cookie 파일을 기준으로 한 예상값입니다. 실제 사용 가능 여부는 로그아웃, 비밀번호 변경, 계정 보안 검사, 서버 IP/지역 변경, 사이트 측 무효화, 속도 제한, yt-dlp extractor 변경 등의 영향을 받을 수 있습니다.
+
 YouTube 또는 다른 사이트에서 로그인이나 Cookie가 필요하다고 표시되면 Cookie 관리에서 해당 사이트 Cookie를 가져오거나 업데이트하세요. YouTube는 현재 서명 challenge 처리를 위해 yt-dlp 업데이트, ffmpeg, Deno 같은 JavaScript 런타임이 필요할 수도 있습니다.
 
 ## 동기화와 개인정보

@@ -60,6 +60,7 @@
       "format": "bv*+ba/b",
       "outputTemplate": "%(title).80B.%(ext)s",
       "cookiesPath": "",
+      "cookiesDir": "./data/ytdlp-cookies/default",
       "proxy": "",
       "requireCookiesForYoutube": false,
       "cleanHashtags": true,

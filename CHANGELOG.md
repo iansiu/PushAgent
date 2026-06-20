@@ -18,6 +18,7 @@ All notable changes to QiuyuRemote PushAgent will be documented in this file.
 - Improved yt-dlp filename cleanup, source URL handling, and downloaded-file deletion support.
 - Improved Push Relay pairing recovery and multi-device binding behavior from the Agent side.
 - Improved public documentation for setup, URL scheme use, cookies, YouTube/Deno guidance, free/Pro app behavior, and Agent-required features.
+- Clarified yt-dlp cookie configuration, App-imported cookie priority, desktop and iOS cookie export workflows, and cookie-expiration caveats across localized docs.
 
 ### Fixed
 - Fixed missing remote notifications when Agent/device bindings were absent or stale.

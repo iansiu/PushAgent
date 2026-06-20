@@ -202,6 +202,12 @@ Cookie 管理按每个 yt-dlp PushAgent 服务隔离。Cookie 会直接上传到
 
 请使用浏览器导出的 Netscape 格式 `cookies.txt` 文件。Cookie 相当于网站登录凭据，请不要分享给他人。
 
+桌面浏览器可以使用 `Get cookies.txt LOCALLY` 插件；如果浏览器支持，它可以导出标准 Netscape 格式的 Cookie 文件。iOS 上可以使用 Microsoft Edge 浏览器配合 `Cookie-Editor` 插件，在插件设置里把 Export Format 设置为 `Netscape`，将当前网站 Cookie 复制到剪贴板，然后运行 `Create a new cookie file` 捷径：`https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`。这个捷径会在 `On My iPhone/Downloads` 目录生成 Cookie 文件，之后可以直接在 QiuyuRemote 里导入。
+
+每个 yt-dlp 任务使用 Cookie 的优先级是：任务单独指定的 cookies path、QiuyuRemote 中导入的对应站点 Cookie、PushAgent `config.json` 里的备用 `cookiesPath`。因此，App 里导入的站点 Cookie 优先级高于配置文件。
+
+QiuyuRemote 中显示的 Cookie 有效期只是根据 Cookie 文件估算。实际能否继续使用还会受到退出登录、修改密码、账号安全检查、服务器 IP/地区变化、网站主动失效、限流，以及 yt-dlp 解析器变化等因素影响。
+
 如果 YouTube 或其它网站提示需要登录或 Cookie，请在 Cookie 管理中导入或更新对应站点 Cookie。YouTube 还可能需要更新 yt-dlp、安装 ffmpeg，以及配置 Deno 等 JavaScript 运行时来处理当前的签名挑战。
 
 ## 同步和隐私

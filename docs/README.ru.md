@@ -157,6 +157,7 @@ yt-dlp:
   "format": "bv*+ba/b",
   "outputTemplate": "%(title).80B.%(ext)s",
   "cookiesPath": "",
+  "cookiesDir": "./data/ytdlp-cookies/default",
   "proxy": "",
   "requireCookiesForYoutube": false,
   "cleanHashtags": true,
@@ -170,13 +171,19 @@ yt-dlp:
 
 Сначала установите yt-dlp на сервере. Если вы оставляете формат `bv*+ba/b`, также рекомендуется установить ffmpeg, потому что некоторые сайты скачивают видео и аудио отдельными потоками, а затем объединяют их. В диагностике отображаются `ytDlpVersion`, `ffmpegAvailable` и `ffmpegVersion`.
 
-Некоторые сайты, особенно YouTube, могут требовать login cookies. Это не ошибка Push Agent; это требование yt-dlp. Экспортируйте `cookies.txt` в формате Netscape из браузера, где вы уже вошли в аккаунт, загрузите файл на сервер и укажите абсолютный путь в `cookiesPath`.
+Некоторые сайты, особенно YouTube, могут требовать login cookies. Это не ошибка Push Agent; это требование yt-dlp. Экспортируйте `cookies.txt` в формате Netscape из браузера, где вы уже вошли в аккаунт, затем импортируйте его в Cookie Management QiuyuRemote или загрузите файл на сервер и укажите абсолютный путь в `cookiesPath`.
 
 ```json
 "cookiesPath": "/root/PushAgent/cookies/all-cookies.txt"
 ```
 
 Один файл cookies может содержать cookies для нескольких доменов. yt-dlp использует только cookies, подходящие к URL. Не публикуйте этот файл.
+
+Порядок выбора Cookie: `cookiesPath`, явно заданный для задачи; Cookie соответствующего сайта, импортированный в QiuyuRemote и сохраненный в `cookiesDir`; fallback `cookiesPath` из `config.json`; без Cookie. Поэтому сайтный Cookie, импортированный в приложении, имеет приоритет над файлом из конфига. Если импортированный файл пустой, истекший или некорректный, задача завершится Cookie-ошибкой и не будет тихо переключаться на конфиг. Чтобы снова использовать fallback `cookiesPath`, обновите или удалите импортированный Cookie этого сайта в приложении.
+
+В настольных браузерах расширение `Get cookies.txt LOCALLY` может экспортировать стандартный файл Cookie в формате Netscape. На iOS можно использовать Microsoft Edge с расширением `Cookie-Editor`: задайте Export Format `Netscape`, скопируйте Cookie текущего сайта и запустите Shortcut `Create a new cookie file`: `https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`. Shortcut создаст Cookie-файл в `On My iPhone/Downloads`, после чего его можно напрямую импортировать в QiuyuRemote.
+
+Срок действия Cookie, показанный в QiuyuRemote, является оценкой. Реальная доступность может измениться из-за выхода из аккаунта, смены пароля, проверок безопасности аккаунта, изменения IP/региона сервера, принудительной инвалидизации сайтом, rate limit или изменений extractor в yt-dlp.
 
 YouTube также может требовать внешнюю JavaScript-поддержку yt-dlp для решения signature и `n` challenge. Установите Deno и сделайте его доступным и для текущего shell, и для systemd:
 
@@ -437,9 +444,10 @@ Agent отправляет события для:
 | `servers[].historyLimit` | Только yt-dlp. Количество записей истории задач, сохраняемых Push Agent. По умолчанию `1000`. |
 | `servers[].format` | Только yt-dlp. Формат selector по умолчанию. |
 | `servers[].outputTemplate` | Только yt-dlp. Шаблон имени выходного файла. По умолчанию используется `%(title).80B.%(ext)s`, чтобы заголовки были короче. |
-| `servers[].cookiesPath` | Только yt-dlp. Путь к cookies-файлу для сайтов, требующих входа. |
+| `servers[].cookiesPath` | Только yt-dlp. Fallback-файл Cookie в формате Netscape, используемый когда нет Cookie, заданного задачей или импортированного из приложения для сайта. |
+| `servers[].cookiesDir` | Только yt-dlp. Каталог, где Cookie Management QiuyuRemote хранит сайтные Cookie. По умолчанию `data/ytdlp-cookies/<storageKey>`. |
 | `servers[].proxy` | Только yt-dlp. Proxy, передаваемый в yt-dlp. |
-| `servers[].requireCookiesForYoutube` | Только yt-dlp. Если `true`, YouTube URL без cookies заранее возвращает понятную ошибку. |
+| `servers[].requireCookiesForYoutube` | Только yt-dlp. Если `true`, YouTube URL заранее возвращает понятную ошибку, когда нет Cookie в задаче, приложении или fallback-конфиге. |
 | `servers[].cleanHashtags` | Только yt-dlp. По умолчанию `true`; удаляет trailing hashtag-текст из заголовков перед созданием имени файла. |
 | `servers[].maxConcurrent` | Только yt-dlp. Максимальное число активных процессов yt-dlp. По умолчанию `10`. |
 | `servers[].noPlaylist` | Только yt-dlp. По умолчанию `true`; не дает одному URL раскрыться в загрузку всего плейлиста. |
