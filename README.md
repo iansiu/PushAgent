@@ -599,10 +599,11 @@ speed or progress growth. If a running, incomplete task receives no data for
 `download_inactive` notification. The notification resets only after that task
 receives data again, so it will not repeat every polling cycle.
 
-If Push Relay accepts an event but no device receives it, the Agent records that
-task as already reported. This prevents the same completed or failed task from
-being sent again every polling cycle when all devices are disabled or no devices
-are paired.
+If Push Relay accepts an event but no device receives it, or only some devices
+receive it, the Agent keeps that event pending and retries it on later polling
+cycles. Devices that already received the event are excluded from the retry, and
+recent duplicate events are suppressed, so recovery does not create duplicate
+successful notifications.
 
 ## Field Reference
 

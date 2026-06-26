@@ -207,7 +207,7 @@ function shouldTryNextRelay(error) {
 
 function isPairingCodeLookupMiss(message, statusCode) {
   if (statusCode !== 404) return false;
-  return /pairing code was not found|pairing code was not found or has expired/i.test(String(message || ""));
+  return /pairing code was not found|pairing code was not found or has expired|device for this pairing code is no longer registered/i.test(String(message || ""));
 }
 
 function isPairingIdentitySyncMiss(message, statusCode) {

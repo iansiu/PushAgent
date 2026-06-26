@@ -4,6 +4,12 @@ import { Aria2EventClient, aria2WebSocketURL } from "./aria2-events.mjs";
 import { loadConfig } from "./config.mjs";
 import { JSONStore } from "./store.mjs";
 import { diagnoseServer, fallbackAria2EventTask, fetchAria2TaskByGid, fetchTasks } from "./download-clients.mjs";
+import {
+  deliveryRetryState,
+  pushDeliveryHandled,
+  pushRetryExclusionDeviceIds,
+  taskStateAfterDelivery
+} from "./push-delivery.mjs";
 import { RelayClient } from "./relay-client.mjs";
 import { AGENT_WEB_UI_HTML } from "./web-ui.mjs";
 import {
@@ -32,6 +38,7 @@ const activeMonitorServers = new Set();
 const aria2EventClients = new Map();
 const runtimeEvents = [];
 const recentPushEventKeys = new Map();
+const activePushEventKeys = new Set();
 const PROCESS_STARTED_AT = new Date().toISOString();
 const DEFAULT_INACTIVE_DOWNLOAD_NOTICE_SECONDS = 30 * 60;
 const AGENT_FAVICON_ICO = createFaviconICO("agent");
@@ -633,19 +640,35 @@ async function monitorServer(server) {
       console.warn(`[${server.id}] monitor warnings: ${warnings.join("; ")}`);
     }
     const previousServer = store.getServer(server.id);
-    if (previousServer.online === false) {
-      await sendPushEvent({
+    let delivery = null;
+    let pendingOnlineNotice = false;
+    if (shouldSendServerOnlineNotice(previousServer)) {
+      delivery = await sendPushEvent({
         type: "server_online",
         title: "QiuyuRemote",
         body: `${server.name || server.id} is online.`,
-        server: publicServer(server)
+        server: publicServer(server),
+        excludeDeviceIds: pushRetryExclusionDeviceIds(previousServer, "server_online")
       });
+      state.lastPushSummary = pushSummary("server_online", delivery);
+      if (!pushDeliveryHandled(delivery)) {
+        pendingOnlineNotice = true;
+      }
     }
     store.setServer(server.id, {
       online: true,
       lastError: "",
       lastMonitorAt: monitorStartedAt,
-      lastSuccessfulMonitorAt: new Date().toISOString()
+      lastSuccessfulMonitorAt: new Date().toISOString(),
+      pendingOnlineNotice,
+      pendingOfflineNotice: false,
+      ...(delivery
+        ? deliveryRetryState(previousServer, "server_online", delivery)
+        : {
+            pendingPushEventStatus: "",
+            pendingPushSucceededDeviceIds: [],
+            lastPushError: ""
+          })
     });
     for (const task of tasks) {
       await handleTask(server, task);
@@ -658,20 +681,43 @@ async function monitorServer(server) {
     const previousServer = store.getServer(server.id);
     const message = monitorErrorMessage(server, error);
     console.error(`[${server.id}] monitor failed (${server.type}) at ${describeServerEndpoint(server)}: ${message}`);
+    let completedDeliveryState = {
+      pendingPushEventStatus: "",
+      pendingPushSucceededDeviceIds: [],
+      lastPushAttemptAt: previousServer.lastPushAttemptAt || "",
+      lastPushAcceptedAt: previousServer.lastPushAcceptedAt || "",
+      lastPushError: ""
+    };
+    if (shouldSendServerOfflineNotice(previousServer)) {
+      const delivery = await sendPushEvent({
+        type: "server_offline",
+        title: "QiuyuRemote",
+        body: serverOfflineBody(server, message),
+        server: publicServer(server),
+        excludeDeviceIds: pushRetryExclusionDeviceIds(previousServer, "server_offline")
+      });
+      state.lastPushSummary = pushSummary("server_offline", delivery);
+      if (!pushDeliveryHandled(delivery)) {
+        store.setServer(server.id, {
+          online: false,
+          lastError: message,
+          lastMonitorAt: monitorStartedAt,
+          lastFailedMonitorAt: new Date().toISOString(),
+          pendingOfflineNotice: true,
+          ...deliveryRetryState(previousServer, "server_offline", delivery)
+        });
+        return;
+      }
+      completedDeliveryState = deliveryRetryState(previousServer, "server_offline", delivery);
+    }
     store.setServer(server.id, {
       online: false,
       lastError: message,
       lastMonitorAt: monitorStartedAt,
-      lastFailedMonitorAt: new Date().toISOString()
+      lastFailedMonitorAt: new Date().toISOString(),
+      pendingOfflineNotice: false,
+      ...completedDeliveryState
     });
-    if (previousServer.online !== false) {
-      await sendPushEvent({
-        type: "server_offline",
-        title: "QiuyuRemote",
-        body: serverOfflineBody(server, message),
-        server: publicServer(server)
-      });
-    }
   }
 }
 
@@ -813,38 +859,41 @@ async function handleTask(server, task, options = {}) {
   store.setTask(key, { ...next, lastEventStatus: previousLastEventStatus });
   if (task.status === "completed" && previousLastEventStatus !== "completed") {
     state.lastEventSummary = `${new Date().toISOString()} download_completed ${server.id}:${task.id} "${task.name}"`;
-    store.setTask(key, { ...next, lastEventStatus: "completed" });
     const delivery = await sendPushEvent({
       type: "download_completed",
       title: downloadNotificationTitle("completed"),
       body: completedTaskBody(server, task, next),
       server: publicServer(server),
-      task: next
+      task: next,
+      excludeDeviceIds: pushRetryExclusionDeviceIds(previous, "completed")
     });
     state.lastPushSummary = pushSummary("download_completed", delivery);
+    store.setTask(key, taskStateAfterDelivery(next, previous, "completed", delivery));
   } else if (task.status === "failed" && previousLastEventStatus !== "failed") {
     state.lastEventSummary = `${new Date().toISOString()} task_failed ${server.id}:${task.id} "${task.name}"`;
-    store.setTask(key, { ...next, lastEventStatus: "failed" });
     const delivery = await sendPushEvent({
       type: "task_failed",
       title: downloadNotificationTitle("failed"),
       body: failedTaskBody(server, task),
       server: publicServer(server),
-      task: next
+      task: next,
+      excludeDeviceIds: pushRetryExclusionDeviceIds(previous, "failed")
     });
     state.lastPushSummary = pushSummary("task_failed", delivery);
+    store.setTask(key, taskStateAfterDelivery(next, previous, "failed", delivery));
   } else if (shouldSendTaskStoppedNotice(next, previous, previousLastEventStatus)) {
     const eventStatus = stopNoticeEventStatus(next.stopNotice);
     state.lastEventSummary = `${new Date().toISOString()} task_stopped ${server.id}:${task.id} "${task.name}"`;
-    store.setTask(key, { ...next, lastEventStatus: eventStatus });
     const delivery = await sendPushEvent({
       type: "task_stopped",
       title: downloadNotificationTitle("stopped"),
       body: stoppedTaskBody(server, task, next),
       server: publicServer(server),
-      task: next
+      task: next,
+      excludeDeviceIds: pushRetryExclusionDeviceIds(previous, eventStatus)
     });
     state.lastPushSummary = pushSummary("task_stopped", delivery);
+    store.setTask(key, taskStateAfterDelivery(next, previous, eventStatus, delivery));
   } else if (shouldSendInactiveDownloadNotice(server, task, next, previous, state, options)) {
     const inactiveSeconds = inactiveDownloadNoticeSeconds();
     state.lastEventSummary = `${new Date().toISOString()} download_inactive ${server.id}:${task.id} "${task.name}"`;
@@ -856,16 +905,24 @@ async function handleTask(server, task, options = {}) {
       task: {
         ...next,
         noticeMessage: "Downloading, but no data has been received for a while."
-      }
+      },
+      excludeDeviceIds: pushRetryExclusionDeviceIds(previous, "download_inactive")
     });
     state.lastPushSummary = pushSummary("download_inactive", delivery);
     recordRuntimeEvent("download_inactive", `${server.name || server.id}: ${task.name} has not received download data for ${formatDuration(inactiveSeconds)}.`, delivery.ok ? "warn" : "error");
-    if (delivery.accepted) {
+    if (pushDeliveryHandled(delivery)) {
       store.setTask(key, {
         ...next,
         inactiveNoticeActive: true,
         lastInactiveNoticeAt: new Date().toISOString(),
-        lastEventStatus: previousLastEventStatus
+        lastEventStatus: previousLastEventStatus,
+        ...deliveryRetryState(previous, "download_inactive", delivery)
+      });
+    } else {
+      store.setTask(key, {
+        ...next,
+        lastEventStatus: previousLastEventStatus,
+        ...deliveryRetryState(previous, "download_inactive", delivery)
       });
     }
   }
@@ -1183,6 +1240,14 @@ function inactiveDownloadNoticeSeconds() {
   );
 }
 
+function shouldSendServerOnlineNotice(previousServer = {}) {
+  return previousServer.online === false || previousServer.pendingOnlineNotice === true;
+}
+
+function shouldSendServerOfflineNotice(previousServer = {}) {
+  return previousServer.online !== false || previousServer.pendingOfflineNotice === true;
+}
+
 async function sendPushEvent(event) {
   const identity = relayIdentity();
   if (!identity) {
@@ -1190,11 +1255,16 @@ async function sendPushEvent(event) {
     return { ok: false, message: "Push Agent is not paired with Push Relay." };
   }
   const eventKey = pushEventKey(event);
-  if (!reserveRecentPushEvent(eventKey)) {
+  if (isRecentPushEvent(eventKey)) {
     console.log(`[${event.server.id}] duplicate push event suppressed: ${eventKey}`);
     return { ok: true, accepted: true, sent: 0, failed: 0, duplicate: true, message: "Duplicate push event suppressed." };
   }
+  if (activePushEventKeys.has(eventKey)) {
+    console.log(`[${event.server.id}] push event already in flight: ${eventKey}`);
+    return { ok: false, accepted: false, sent: 0, failed: 0, duplicate: true, inFlight: true, message: "Push event is already in flight." };
+  }
   const eventId = eventKey;
+  activePushEventKeys.add(eventKey);
   try {
     console.log(`[${event.server.id}] sending push event ${event.type}${event.task ? ` for "${event.task.name}"` : ""}.`);
     const result = await relay.sendEvent({
@@ -1224,17 +1294,37 @@ async function sendPushEvent(event) {
     if (!relay.staticIdentity && result?.relayBaseURL && result.relayBaseURL !== identity.relayBaseURL) {
       store.setRelayIdentity({ ...identity, relayBaseURL: result.relayBaseURL });
     }
-    return {
-      ok: sent > 0,
+    const delivery = {
       accepted: true,
+      duplicate: result?.duplicate === true,
       sent,
       failed,
       relayMessage,
-      message: sent > 0 ? relayMessage : relayMessage || "Push Relay accepted the event, but no paired device received it."
+      results: Array.isArray(result?.results) ? result.results : []
+    };
+    const handled = pushDeliveryHandled(delivery);
+    if (handled) {
+      rememberRecentPushEvent(eventKey);
+    }
+    return {
+      ok: handled,
+      accepted: true,
+      duplicate: delivery.duplicate,
+      sent,
+      failed,
+      relayMessage,
+      results: delivery.results,
+      message: delivery.duplicate
+        ? relayMessage || "Duplicate push event suppressed."
+        : sent > 0
+          ? relayMessage
+          : relayMessage || "Push Relay accepted the event, but no paired device received it."
     };
   } catch (error) {
     console.error(`[${event.server.id}] push event ${event.type} failed: ${error.message || error}`);
     return { ok: false, accepted: false, message: error.message || "Push event failed." };
+  } finally {
+    activePushEventKeys.delete(eventKey);
   }
 }
 
@@ -1255,7 +1345,7 @@ function pushEventKeyPart(value) {
     .slice(0, 96);
 }
 
-function reserveRecentPushEvent(eventKey) {
+function isRecentPushEvent(eventKey) {
   const now = Date.now();
   const windowMs = 15_000;
   for (const [key, timestamp] of recentPushEventKeys) {
@@ -1264,11 +1354,12 @@ function reserveRecentPushEvent(eventKey) {
     }
   }
   const previous = recentPushEventKeys.get(eventKey);
-  if (previous && now - previous <= windowMs) {
-    return false;
-  }
-  recentPushEventKeys.set(eventKey, now);
-  return true;
+  return Boolean(previous && now - previous <= windowMs);
+}
+
+function rememberRecentPushEvent(eventKey) {
+  if (!eventKey) return;
+  recentPushEventKeys.set(eventKey, Date.now());
 }
 
 function pushCollapseId(eventKey) {
@@ -1281,10 +1372,18 @@ function deeplinkForEvent(event) {
   const params = new URLSearchParams();
   if (event.server?.id) params.set("server", event.server.id);
   if (event.server?.name) params.set("serverName", event.server.name);
-  if (event.server?.type) params.set("type", event.server.type);
+  if (event.server?.type) params.set("type", deeplinkServerType(event.server.type));
   if (event.task?.id) params.set("task", event.task.id);
   const query = params.toString();
   return `qiuyuremote://open${query ? `?${query}` : ""}`;
+}
+
+function deeplinkServerType(type) {
+  const normalized = String(type || "").trim().toLowerCase();
+  if (normalized === "ytdlp") return "yt-dlp";
+  if (normalized === "qbittorrent" || normalized === "qb" || normalized === "qbit") return "qBit";
+  if (normalized === "trans") return "Transmission";
+  return type;
 }
 
 function pushSummary(type, delivery) {

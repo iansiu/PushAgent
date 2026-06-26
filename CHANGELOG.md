@@ -2,6 +2,17 @@
 
 All notable changes to QiuyuRemote PushAgent will be documented in this file.
 
+## [Unreleased] - 2026-06-26
+
+### Improved
+- Improved push delivery recovery so partially delivered events retry only the devices that did not receive the notification.
+- Added duplicate suppression and APNs collapse IDs for recent task/server events to avoid repeated successful notifications during retry recovery.
+- Clarified localized documentation for yt-dlp cookie priority, iOS cookie export, free/Pro behavior, and delivery retry behavior.
+
+### Fixed
+- Fixed completed, failed, stopped, inactive, and server online/offline events being marked handled when Push Relay accepted the event but no target device actually received it.
+- Improved the pairing error shown when the QiuyuRemote device for a pairing code is no longer registered.
+
 ## [1.1.0] - 2026-06-13
 
 ### Added
