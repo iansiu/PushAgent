@@ -8,6 +8,7 @@ All notable changes to QiuyuRemote PushAgent will be documented in this file.
 - Improved push delivery recovery so partially delivered events retry only the devices that did not receive the notification.
 - Added duplicate suppression and APNs collapse IDs for recent task/server events to avoid repeated successful notifications during retry recovery.
 - Clarified localized documentation for yt-dlp cookie priority, iOS cookie export, free/Pro behavior, and delivery retry behavior.
+- Documented QiuyuRemote's supported third-party video player handoff targets across the localized App Guides.
 
 ### Fixed
 - Fixed completed, failed, stopped, inactive, and server online/offline events being marked handled when Push Relay accepted the event but no target device actually received it.

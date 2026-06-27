@@ -185,6 +185,19 @@ The Offline Library is local to the current device. Offline files are not synced
 
 If a file exists on disk but does not appear in WebDAV yet, refresh the WebDAV provider, for example OpenList, or wait for its index/cache to update.
 
+## External Players
+
+When Allow third-party players is enabled, QiuyuRemote can hand video playback links to installed players that expose supported URL schemes.
+
+For remote or WebDAV playback, the current quick actions support:
+
+- iPhone and iPad: nPlayer, Infuse, VidHub, Fileball, SenPlayer, and Forward.
+- Mac Catalyst: IINA, Infuse, VidHub, SenPlayer, nPlayer, Fileball, and Forward.
+
+QiuyuRemote checks which players are installed before showing quick actions. For private WebDAV or OpenList files, the app may use a direct WebDAV/OpenList link when available, or a temporary local proxy link when the player needs one. TMDB display names and subtitle links are passed only when the player's URL scheme supports them.
+
+Offline Library local-file quick actions are currently Mac Catalyst only. On iPhone and iPad, use Open with Other Player or the system share sheet for local offline files.
+
 ## Notifications
 
 System notification permission is controlled by iOS, iPadOS, or macOS.

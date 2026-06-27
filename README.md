@@ -40,6 +40,7 @@ reliably run from the app alone:
 | Manage qBittorrent, Transmission, or aria2 tasks | No |
 | Add, pause, resume, remove, limit, or inspect qBittorrent, Transmission, or aria2 tasks | No |
 | WebDAV file browsing and playback | No, but WebDAV must be configured separately |
+| Hand off video playback to supported third-party players | No, this is handled inside QiuyuRemote |
 | Local offline downloads in QiuyuRemote | No |
 | Local offline download notifications | No, QiuyuRemote schedules them locally |
 | Remote download completed or failed notifications | Yes |

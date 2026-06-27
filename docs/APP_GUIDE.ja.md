@@ -185,6 +185,19 @@ WebDAV は任意機能です。ダウンロードディレクトリが WebDAV �
 
 ディスク上にはファイルがあるのに WebDAV に表示されない場合は、OpenList などの WebDAV プロバイダーを更新するか、インデックス/キャッシュ更新を待ってください。
 
+## 外部プレイヤー
+
+「Allow third-party players」を有効にすると、QiuyuRemote は対応 URL Scheme を持つインストール済みプレイヤーへ動画再生リンクを渡せます。
+
+リモートまたは WebDAV 再生のクイック操作は現在次に対応しています。
+
+- iPhone と iPad: nPlayer、Infuse、VidHub、Fileball、SenPlayer、Forward。
+- Mac Catalyst: IINA、Infuse、VidHub、SenPlayer、nPlayer、Fileball、Forward。
+
+QiuyuRemote はインストール済みプレイヤーを検出してからクイック操作を表示します。プライベート WebDAV または OpenList ファイルでは、利用可能な場合は直接リンクを使い、必要に応じて一時的なローカルプロキシ再生リンクを生成します。TMDB 表示名や字幕リンクは、対象プレイヤーの URL Scheme が対応している場合だけ渡されます。
+
+オフラインライブラリのローカルファイル用クイック操作は、現在 Mac Catalyst のみ対応です。iPhone と iPad では「Open with Other Player」またはシステム共有メニューでローカルオフラインファイルを開いてください。
+
 ## 通知
 
 システム通知権限は iOS、iPadOS、macOS が管理します。

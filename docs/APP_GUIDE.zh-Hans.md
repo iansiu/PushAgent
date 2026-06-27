@@ -185,6 +185,19 @@ WebDAV 是可选功能。如果下载目录通过 WebDAV 暴露，可以在全�
 
 如果磁盘上已经有文件，但 WebDAV 里还看不到，请刷新 WebDAV 服务，例如 OpenList，或等待它的索引/缓存更新。
 
+## 第三方播放器
+
+开启“允许使用第三方播放器”后，QiuyuRemote 可以把视频播放链接交给已安装并支持 URL Scheme 的播放器。
+
+远程或 WebDAV 播放目前支持以下快捷操作：
+
+- iPhone 和 iPad：nPlayer、Infuse、VidHub、Fileball、SenPlayer、Forward。
+- Mac Catalyst：IINA、Infuse、VidHub、SenPlayer、nPlayer、Fileball、Forward。
+
+QiuyuRemote 会先检测设备上已经安装的播放器，再显示快捷操作。对于私有 WebDAV 或 OpenList 文件，App 会优先使用可用的直链，也可能在播放器需要时生成临时本地代理播放链接。TMDB 显示标题和字幕链接只会在对应播放器的 URL Scheme 支持时传递。
+
+离线库本地文件的快捷播放器操作目前只支持 Mac Catalyst。iPhone 和 iPad 上可以使用“用其它播放器打开”或系统分享菜单打开本地离线文件。
+
 ## 通知
 
 系统通知权限由 iOS、iPadOS 或 macOS 控制。
