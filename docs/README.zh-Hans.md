@@ -6,6 +6,11 @@
 
 App 使用指南：[QiuyuRemote App 使用指南](APP_GUIDE.zh-Hans.md)
 
+## 支持与反馈
+
+QiuyuRemote App 支持、反馈、问题报告、功能建议以及 PushAgent 相关问题，都可以在这里提交 Issue：
+<https://github.com/iansiu/PushAgent/issues>
+
 Push Agent 运行在你的下载服务器上，用来监控 qBittorrent、Transmission、aria2 和可选的 yt-dlp 任务，并把下载完成、下载失败、任务长时间无数据、服务器离线/恢复等事件发送到 Qiuyu's Push Relay。QiuyuRemote 收到这些事件后会显示系统通知。
 
 Push Agent 很轻量：

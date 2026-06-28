@@ -6,6 +6,11 @@
 
 App ガイド：[QiuyuRemote App ガイド](APP_GUIDE.ja.md)
 
+## サポート
+
+QiuyuRemote アプリのサポート、フィードバック、不具合報告、機能要望、PushAgent に関する質問は、こちらで Issue を作成してください：
+<https://github.com/iansiu/PushAgent/issues>
+
 Push Agent はダウンロードサーバー上で動作し、qBittorrent、Transmission、aria2、任意の yt-dlp タスクを監視します。ダウンロード完了、失敗、長時間データが流れていない状態、サーバーのオフライン/復帰などのイベントを Qiuyu's Push Relay に送信し、QiuyuRemote 側でシステム通知を表示します。
 
 Push Agent は軽量です。
