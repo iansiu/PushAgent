@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QiuyuRemote Privacy Policy</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f8fb;
+      --surface: #ffffff;
+      --text: #111827;
+      --muted: #5f6877;
+      --border: #d8dde8;
+      --accent: #2563eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101419;
+        --surface: #171d25;
+        --text: #f1f5f9;
+        --muted: #a9b3c2;
+        --border: #2c3440;
+        --accent: #79a9ff;
+      }
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(920px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0;
+    }
+    header {
+      margin-bottom: 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(32px, 5vw, 48px);
+      line-height: 1.1;
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 22px;
+      line-height: 1.25;
+    }
+    h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      line-height: 1.3;
+    }
+    p {
+      margin: 0 0 12px;
+    }
+    ul {
+      margin: 0 0 12px 20px;
+      padding: 0;
+    }
+    a {
+      color: var(--accent);
+    }
+    .meta {
+      color: var(--muted);
+    }
+    .card {
+      margin: 18px 0;
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+    }
+    .lang {
+      display: grid;
+      gap: 18px;
+    }
+    .divider {
+      height: 1px;
+      margin: 36px 0;
+      background: var(--border);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>QiuyuRemote Privacy Policy</h1>
+      <p class="meta">Last updated: July 7, 2026</p>
+      <p class="meta">Support: <a href="https://github.com/iansiu/PushAgent/issues">github.com/iansiu/PushAgent/issues</a></p>
+    </header>
+
+    <section class="lang" aria-labelledby="english">
+      <h2 id="english">English</h2>
+
+      <article class="card">
+        <h3>Privacy First</h3>
+        <p>QiuyuRemote is a remote download management tool for managing download services you configure yourself.</p>
+        <p>Except where necessary to provide app functionality, QiuyuRemote does not proactively collect, analyze, sell, or share your download history, downloaded content, file names, cookies, access tokens, or other sensitive information.</p>
+      </article>
+
+      <article class="card">
+        <h3>Where Your Data Goes</h3>
+        <p>Server configurations, WebDAV settings, TMDB API configuration, yt-dlp cookie files, and app preferences are stored on your device by default.</p>
+        <p>When you use features such as RPC, WebDAV, or TMDB, the app communicates directly with the services you specify.</p>
+        <p>If you enable PushAgent and Push Relay notifications, PushAgent forwards the information required to send notifications to Push Relay, and Apple Push Notification service (APNs) delivers those notifications to your devices.</p>
+        <p>When you enable iCloud sync or StoreKit purchases, related data is sent to services provided by Apple.</p>
+        <p>QiuyuRemote does not send data to the developer's server unless you actively enable a feature that requires it.</p>
+      </article>
+
+      <article class="card">
+        <h3>PushAgent and Push Relay</h3>
+        <p>PushAgent is an optional component deployed and managed by the user. It monitors the status of download services configured by the user.</p>
+        <p>Push Relay is a relay service for forwarding push notifications. It only processes the information required for notification delivery. It does not directly access users' download services, and does not proactively read, analyze, or sell users' download data.</p>
+      </article>
+
+      <article class="card">
+        <h3>Credentials and Security</h3>
+        <p>Passwords, access tokens, and cookies are treated as sensitive data.</p>
+        <p>QiuyuRemote stores this information on your local device whenever possible and avoids sending it to the developer's server. You are responsible for protecting the security of your download services, WebDAV endpoints, PushAgent, and network environment.</p>
+      </article>
+
+      <article class="card">
+        <h3>Your Control</h3>
+        <p>You can at any time:</p>
+        <ul>
+          <li>Delete server configurations</li>
+          <li>Delete cookie files</li>
+          <li>Turn off notifications</li>
+          <li>Turn off iCloud sync</li>
+          <li>Revoke authorization</li>
+          <li>Clear local data</li>
+        </ul>
+        <p>You can also remove all locally stored data by deleting the app.</p>
+        <p>If you use third-party services, their privacy policies also apply to the related data processing.</p>
+      </article>
+    </section>
+
+    <div class="divider" role="presentation"></div>
+
+    <section class="lang" lang="zh-Hans" aria-labelledby="chinese">
+      <h2 id="chinese">简体中文</h2>
+
+      <article class="card">
+        <h3>隐私优先</h3>
+        <p>QiuyuRemote 是一款远程下载管理工具，用于管理你自行配置的下载服务。</p>
+        <p>除实现应用功能所必需的情况外，QiuyuRemote 不会主动收集、分析、出售或共享你的下载记录、下载内容、文件名、Cookie、访问令牌（Token）或其他敏感信息。</p>
+      </article>
+
+      <article class="card">
+        <h3>数据会去哪里</h3>
+        <p>服务器配置、WebDAV 设置、TMDB API 配置、yt-dlp Cookie 文件以及应用偏好默认保存在你的设备上。</p>
+        <p>当你使用 RPC、WebDAV 或 TMDB 等功能时，应用会直接与你指定的服务进行通信。</p>
+        <p>如果你启用了 PushAgent 与 Push Relay 通知功能，PushAgent 会将发送通知所需的信息转发至 Push Relay，再由 Apple Push Notification Service（APNs）将通知送达你的设备。</p>
+        <p>当你启用 iCloud 同步或 StoreKit 购买时，相关数据会发送至 Apple 提供的服务。</p>
+        <p>QiuyuRemote 不会在未经你主动启用相关功能的情况下，将数据发送至开发者服务器。</p>
+      </article>
+
+      <article class="card">
+        <h3>PushAgent 与 Push Relay</h3>
+        <p>PushAgent 是由用户自行部署和管理的可选组件，用于监听用户配置的下载服务状态。</p>
+        <p>Push Relay 是用于转发推送通知的中继服务，仅处理通知送达所需的信息，不直接访问用户的下载服务，也不会主动读取、分析或出售用户的下载数据。</p>
+      </article>
+
+      <article class="card">
+        <h3>凭据与安全</h3>
+        <p>密码、访问令牌（Token）和 Cookie 会被视为敏感数据。</p>
+        <p>QiuyuRemote 会尽可能将这些信息保存在本地设备，并避免将其发送至开发者服务器。你需要自行保护下载服务、WebDAV 端点、PushAgent 以及网络环境的安全。</p>
+      </article>
+
+      <article class="card">
+        <h3>你的控制权</h3>
+        <p>你可以随时：</p>
+        <ul>
+          <li>删除服务器配置</li>
+          <li>删除 Cookie 文件</li>
+          <li>关闭通知功能</li>
+          <li>关闭 iCloud 同步</li>
+          <li>取消授权</li>
+          <li>清除本地数据</li>
+        </ul>
+        <p>你也可以通过删除应用移除所有本地存储的数据。</p>
+        <p>如果你使用第三方服务，其对应服务提供商的隐私政策同样适用于相关数据处理行为。</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
