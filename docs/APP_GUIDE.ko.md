@@ -2,7 +2,9 @@
 
 언어: [English](../APP_GUIDE.md) | [简体中文](APP_GUIDE.zh-Hans.md) | [繁體中文](APP_GUIDE.zh-Hant.md) | [日本語](APP_GUIDE.ja.md) | 한국어 | [Русский](APP_GUIDE.ru.md)
 
-QiuyuRemote는 다운로드 클라이언트에 직접 연결하는 관리 앱으로도 사용할 수 있고, Push Agent와 함께 서버 알림 및 yt-dlp 기능을 사용하는 앱으로도 사용할 수 있습니다.
+> **프로덕션 빌드 상태:** QiuyuRemote App Store 프로덕션 빌드에는 ~~yt-dlp~~ 통합과 Cookie 관리가 포함되지 않습니다. 아래 ~~yt-dlp~~ 내용은 내부 빌드와 기존 PushAgent 배포를 위해 보존됩니다.
+
+QiuyuRemote는 다운로드 클라이언트에 직접 연결하는 관리 앱으로도 사용할 수 있고, Push Agent와 함께 서버 알림 및 ~~yt-dlp~~ 기능을 사용하는 앱으로도 사용할 수 있습니다.
 
 ## 기본 모드와 Agent 모드
 
@@ -20,9 +22,9 @@ Push Agent는 서버에서 계속 실행되어야 하는 백그라운드 기능�
 | 원격 다운로드 완료 또는 실패 알림 | 필요 |
 | 장시간 데이터가 없는 작업 알림 | 필요 |
 | 다운로드 서버 오프라인 또는 복구 알림 | 필요 |
-| yt-dlp 다운로드 | 필요 |
-| yt-dlp Cookie 관리 | 필요 |
-| 다른 앱에서 미디어 URL을 QiuyuRemote로 공유해 원격 yt-dlp 다운로드 | 필요 |
+| <del>yt-dlp 다운로드</del> | <del>필요</del> |
+| <del>yt-dlp Cookie 관리</del> | <del>필요</del> |
+| <del>다른 앱에서 미디어 URL을 QiuyuRemote로 공유해 원격 yt-dlp 다운로드</del> | <del>필요</del> |
 
 ## 무료 버전과 Pro 버전
 
@@ -30,15 +32,15 @@ QiuyuRemote는 무료로 다운로드하고 사용할 수 있습니다. 무료 �
 
 Pro 버전은 더 완전한 원격 관리 기능이 필요한 사용자를 위한 것입니다. Pro로 업그레이드하면 다음 기능을 사용할 수 있습니다.
 
-- yt-dlp 다운로드
-- 로그인이 필요한 미디어 사이트를 위한 yt-dlp Cookie 관리
+- ~~yt-dlp~~ 다운로드
+- 로그인이 필요한 미디어 사이트를 위한 ~~yt-dlp~~ Cookie 관리
 - Push Agent를 통한 원격 다운로드 알림
 - 서버 프로필과 앱 설정의 iCloud 동기화
 - Offline Library와 오프라인 작업 관리
 - WebDAV 재생과 파일 접근
 - 다운로드 완료 알림
 - 고급 서버 설정
-- yt-dlp 서버 사용 및 aria2/qBittorrent/Transmission 혼합 구성
+- ~~yt-dlp~~ 서버 사용 및 aria2/qBittorrent/Transmission 혼합 구성
 
 Pro 상태와 Push Agent 페어링은 별개입니다. Pro를 구입해도 Agent가 자동으로 페어링되지 않으며, Agent를 페어링했다고 해서 Pro 구입이 있다는 뜻도 아닙니다.
 
@@ -61,7 +63,7 @@ QiuyuRemote에서 서버를 삭제해도 앱에 저장된 연결 프로필만 �
 - Transmission: Transmission RPC에 연결합니다.
 - aria2: aria2 JSON-RPC에 연결합니다.
 - qBittorrent: qBittorrent Web UI API에 연결합니다.
-- yt-dlp: PushAgent의 `v1/ytdlp` API에 연결합니다. yt-dlp는 서버에서 실행되며 iPhone이나 Mac에서 실행되지 않습니다.
+- ~~yt-dlp~~: PushAgent의 `v1/ytdlp` API에 연결합니다. ~~yt-dlp~~는 서버에서 실행되며 iPhone이나 Mac에서 실행되지 않습니다.
 
 ## 다운로드 추가
 
@@ -69,9 +71,9 @@ QiuyuRemote에서 서버를 삭제해도 앱에 저장된 연결 프로필만 �
 
 - qBittorrent와 Transmission은 magnet 링크와 `.torrent` 파일에 적합합니다.
 - aria2는 일반 HTTP/HTTPS 파일 URL, metalink, magnet, torrent를 처리할 수 있으며 실제 동작은 aria2 설정에 따라 달라집니다.
-- yt-dlp는 YouTube, TikTok, Bilibili, Instagram, X, Threads 등 yt-dlp가 지원하는 사이트의 HTTP/HTTPS 미디어 페이지 URL을 받습니다.
+- ~~yt-dlp~~는 YouTube, TikTok, Bilibili, Instagram, X, Threads 등 ~~yt-dlp~~가 지원하는 사이트의 HTTP/HTTPS 미디어 페이지 URL을 받습니다.
 
-iPhone과 iPad에서는 다른 앱에서 URL을 QiuyuRemote로 공유할 수 있습니다. yt-dlp 공유를 사용하려면 먼저 yt-dlp PushAgent 서버를 추가하고 연결하세요. iOS 제한 때문에 QiuyuRemote를 연 뒤 제출이 완료될 수 있습니다.
+iPhone과 iPad에서는 다른 앱에서 URL을 QiuyuRemote로 공유할 수 있습니다. ~~yt-dlp~~ 공유를 사용하려면 먼저 ~~yt-dlp~~ PushAgent 서버를 추가하고 연결하세요. iOS 제한 때문에 QiuyuRemote를 연 뒤 제출이 완료될 수 있습니다.
 
 ## URL Scheme 및 단축어
 
@@ -93,7 +95,7 @@ qiuyuremote://addTask?type=ytdlp&url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3
 
 - qBittorrent와 Transmission은 magnet 링크 또는 `.torrent` URL을 받습니다.
 - aria2는 일반 파일 URL, magnet, torrent를 받을 수 있으며 실제 동작은 aria2 설정에 따라 달라집니다.
-- yt-dlp는 HTTP/HTTPS 미디어 페이지 URL을 받으며, 설정된 yt-dlp PushAgent 서버가 필요합니다.
+- ~~yt-dlp~~는 HTTP/HTTPS 미디어 페이지 URL을 받으며, 설정된 ~~yt-dlp~~ PushAgent 서버가 필요합니다.
 
 단축어에서는 `x-callback-url`도 사용할 수 있습니다.
 
@@ -116,7 +118,7 @@ qiuyuremote://x-callback-url/addTask?type=aria2&url=https%3A%2F%2Fexample.com%2F
 
 iPad와 Mac에서는 표 머리글의 경계를 드래그해 열 너비를 조절할 수 있습니다. Name 열은 긴 작업 이름을 보기 위해 더 넓게 조절할 수 있습니다.
 
-yt-dlp 작업은 업로드 속도, 업로드 크기, Seeds, Leeches, Ratio 같은 torrent 전용 필드를 숨깁니다.
+~~yt-dlp~~ 작업은 업로드 속도, 업로드 크기, Seeds, Leeches, Ratio 같은 torrent 전용 필드를 숨깁니다.
 
 ## 작업 상태 매핑
 
@@ -144,13 +146,13 @@ QiuyuRemote의 작업 목록은 각 다운로드 서비스의 상태를 앱 표�
 | aria2 | `error` | Error |
 | aria2 | `complete` | Complete. 자동 규칙 알림이 있으면 Stopped로 표시될 수 있음 |
 | aria2 | `removed` | Removed |
-| yt-dlp | `downloading`, `running` | Downloading |
-| yt-dlp | `postprocessing`, `processing`, `merge`, `fixup`, `metadata`, `extract`, `remux`, `convert` | Processing |
-| yt-dlp | `moving` | Moving |
-| yt-dlp | `completed` | Complete |
-| yt-dlp | `failed`, `error`, `lost` | Error |
-| yt-dlp | `paused` | Paused |
-| yt-dlp | `queued` | Waiting |
+| <del>yt-dlp</del> | <del>`downloading`, `running`</del> | <del>Downloading</del> |
+| <del>yt-dlp</del> | <del>`postprocessing`, `processing`, `merge`, `fixup`, `metadata`, `extract`, `remux`, `convert`</del> | <del>Processing</del> |
+| <del>yt-dlp</del> | <del>`moving`</del> | <del>Moving</del> |
+| <del>yt-dlp</del> | <del>`completed`</del> | <del>Complete</del> |
+| <del>yt-dlp</del> | <del>`failed`, `error`, `lost`</del> | <del>Error</del> |
+| <del>yt-dlp</del> | <del>`paused`</del> | <del>Paused</del> |
+| <del>yt-dlp</del> | <del>`queued`</del> | <del>Waiting</del> |
 
 인식할 수 없는 값은 서비스가 반환한 원본 상태로 표시됩니다. 상태가 비어 있으면 Unknown으로 표시됩니다.
 
@@ -204,7 +206,7 @@ QiuyuRemote는 설치된 플레이어를 먼저 확인한 뒤 빠른 동작을 �
 
 - 로컬 오프라인 다운로드 알림은 QiuyuRemote가 직접 보냅니다.
 - 원격 qBittorrent, Transmission, aria2 작업 알림은 다운로드 서버에서 실행 중이고 페어링된 Push Agent가 필요합니다.
-- yt-dlp 작업 알림도 Push Agent에서 옵니다.
+- ~~yt-dlp~~ 작업 알림도 Push Agent에서 옵니다.
 - Push Relay 테스트 알림은 이 디바이스가 Push Relay/APNs를 통해 알림을 받을 수 있는지만 확인합니다. 서버 Push Agent가 페어링되었거나 실행 중임을 증명하지는 않습니다.
 
 원격 다운로드 알림을 받는 절차:
@@ -215,21 +217,21 @@ QiuyuRemote는 설치된 플레이어를 먼저 확인한 뒤 빠른 동작을 �
 4. 페어링 코드를 입력하고 Agent를 페어링합니다.
 5. 서버에서 PushAgent를 계속 실행합니다.
 
-## yt-dlp와 Cookie
+## <del>yt-dlp와 Cookie</del>
 
-yt-dlp 다운로드는 PushAgent에서 실행됩니다. QiuyuRemote는 URL을 제출하고 Agent가 반환한 작업 상태를 보여줍니다.
+~~yt-dlp~~ 다운로드는 PushAgent에서 실행됩니다. QiuyuRemote는 URL을 제출하고 Agent가 반환한 작업 상태를 보여줍니다.
 
-Cookie 관리는 yt-dlp PushAgent 서버별로 분리됩니다. Cookie는 선택한 PushAgent로 직접 업로드되어 해당 서버에 저장됩니다. Push Relay로 전송되지 않고, iCloud와 동기화되지 않으며, 로그에 기록되지 않습니다.
+Cookie 관리는 ~~yt-dlp~~ PushAgent 서버별로 분리됩니다. Cookie는 선택한 PushAgent로 직접 업로드되어 해당 서버에 저장됩니다. Push Relay로 전송되지 않고, iCloud와 동기화되지 않으며, 로그에 기록되지 않습니다.
 
 브라우저에서 내보낸 Netscape 형식 `cookies.txt` 파일을 사용하세요. Cookie는 웹사이트 로그인 자격 증명과 같으므로 다른 사람과 공유하지 마세요.
 
 데스크톱 브라우저에서는 브라우저가 지원하는 경우 `Get cookies.txt LOCALLY` 확장 프로그램으로 표준 Netscape 형식 Cookie 파일을 내보낼 수 있습니다. iOS에서는 Microsoft Edge와 `Cookie-Editor` 확장 프로그램을 사용하고, 확장 프로그램 설정에서 Export Format을 `Netscape`로 설정한 뒤 현재 사이트의 Cookie를 클립보드에 복사하고 `Create a new cookie file` 단축어를 실행할 수 있습니다: `https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`. 이 단축어는 `On My iPhone/Downloads`에 Cookie 파일을 만들며, QiuyuRemote에서 바로 가져올 수 있습니다.
 
-각 yt-dlp 작업에서 Cookie를 선택하는 우선순위는 작업별 cookies path, QiuyuRemote에 가져온 해당 사이트 Cookie, PushAgent `config.json`의 fallback `cookiesPath` 순서입니다. 즉, 앱에서 가져온 사이트 Cookie가 설정 파일보다 우선합니다.
+각 ~~yt-dlp~~ 작업에서 Cookie를 선택하는 우선순위는 작업별 cookies path, QiuyuRemote에 가져온 해당 사이트 Cookie, PushAgent `config.json`의 fallback `cookiesPath` 순서입니다. 즉, 앱에서 가져온 사이트 Cookie가 설정 파일보다 우선합니다.
 
-QiuyuRemote에 표시되는 Cookie 만료일은 Cookie 파일을 기준으로 한 예상값입니다. 실제 사용 가능 여부는 로그아웃, 비밀번호 변경, 계정 보안 검사, 서버 IP/지역 변경, 사이트 측 무효화, 속도 제한, yt-dlp extractor 변경 등의 영향을 받을 수 있습니다.
+QiuyuRemote에 표시되는 Cookie 만료일은 Cookie 파일을 기준으로 한 예상값입니다. 실제 사용 가능 여부는 로그아웃, 비밀번호 변경, 계정 보안 검사, 서버 IP/지역 변경, 사이트 측 무효화, 속도 제한, ~~yt-dlp~~ extractor 변경 등의 영향을 받을 수 있습니다.
 
-YouTube 또는 다른 사이트에서 로그인이나 Cookie가 필요하다고 표시되면 Cookie 관리에서 해당 사이트 Cookie를 가져오거나 업데이트하세요. YouTube는 현재 서명 challenge 처리를 위해 yt-dlp 업데이트, ffmpeg, Deno 같은 JavaScript 런타임이 필요할 수도 있습니다.
+YouTube 또는 다른 사이트에서 로그인이나 Cookie가 필요하다고 표시되면 Cookie 관리에서 해당 사이트 Cookie를 가져오거나 업데이트하세요. YouTube는 현재 서명 challenge 처리를 위해 ~~yt-dlp~~ 업데이트, ffmpeg, Deno 같은 JavaScript 런타임이 필요할 수도 있습니다.
 
 ## 동기화와 개인정보
 
@@ -243,6 +245,6 @@ YouTube 또는 다른 사이트에서 로그인이나 Cookie가 필요하다고 
 - qBittorrent는 Web UI 기본 URL을 사용합니다. `/api/v2`를 직접 붙이지 마세요.
 - Transmission은 보통 `/transmission/rpc` RPC 엔드포인트를 사용합니다.
 - aria2는 JSON-RPC 엔드포인트를 사용합니다. secret을 설정했다면 token도 입력하세요.
-- yt-dlp는 PushAgent의 `v1/ytdlp` 엔드포인트에 연결합니다. Agent에 `apiKey`가 설정되어 있으면 앱에도 같은 API Key를 입력하세요.
+- ~~yt-dlp~~는 PushAgent의 `v1/ytdlp` 엔드포인트에 연결합니다. Agent에 `apiKey`가 설정되어 있으면 앱에도 같은 API Key를 입력하세요.
 - 원격 알림이 오지 않으면 알림 권한, 집중 모드, Push Relay 등록, Agent 페어링, PushAgent 실행 상태를 확인하세요.
 - WebDAV에서 재생할 수 없거나 파일을 찾을 수 없다면 WebDAV 경로가 실제 다운로드 디렉터리와 매핑되는지 확인하고 WebDAV 서비스를 새로고침하세요.

@@ -646,7 +646,7 @@ async function monitorServer(server) {
       delivery = await sendPushEvent({
         type: "server_online",
         title: "QiuyuRemote",
-        body: `${server.name || server.id} is online.`,
+        body: serverOnlineBody(server),
         server: publicServer(server),
         excludeDeviceIds: pushRetryExclusionDeviceIds(previousServer, "server_online")
       });
@@ -692,7 +692,7 @@ async function monitorServer(server) {
       const delivery = await sendPushEvent({
         type: "server_offline",
         title: "QiuyuRemote",
-        body: serverOfflineBody(server, message),
+        body: serverOfflineBody(server),
         server: publicServer(server),
         excludeDeviceIds: pushRetryExclusionDeviceIds(previousServer, "server_offline")
       });
@@ -754,11 +754,12 @@ function monitorErrorMessage(server, error) {
   return error?.message || String(error);
 }
 
-function serverOfflineBody(server, message) {
-  if (server.type === "ytdlp" || server.type === "yt-dlp") {
-    return `${server.name || server.id}: ${message}`;
-  }
-  return `${server.name || server.id} is offline: ${message}`;
+function serverOfflineBody(server) {
+  return `${serverDisplayName(server)} is offline.`;
+}
+
+function serverOnlineBody(server) {
+  return `${serverDisplayName(server)} is online.`;
 }
 
 function ytdlpErrorMessage(server, error) {
@@ -1241,11 +1242,15 @@ function inactiveDownloadNoticeSeconds() {
 }
 
 function shouldSendServerOnlineNotice(previousServer = {}) {
-  return previousServer.online === false || previousServer.pendingOnlineNotice === true;
+  return serviceStatusNoticeEnabled() && (previousServer.online === false || previousServer.pendingOnlineNotice === true);
 }
 
 function shouldSendServerOfflineNotice(previousServer = {}) {
-  return previousServer.online !== false || previousServer.pendingOfflineNotice === true;
+  return serviceStatusNoticeEnabled() && (previousServer.online !== false || previousServer.pendingOfflineNotice === true);
+}
+
+function serviceStatusNoticeEnabled() {
+  return config.monitor.serviceStatusNoticeEnabled !== false;
 }
 
 async function sendPushEvent(event) {

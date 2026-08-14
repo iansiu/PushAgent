@@ -6,6 +6,8 @@ Languages: English | [简体中文](docs/README.zh-Hans.md) | [繁體中文](doc
 
 App guide: [QiuyuRemote App Guide](APP_GUIDE.md)
 
+> **Production build status:** The App Store production build does not include the ~~yt-dlp~~ integration or Cookie Management. The retained ~~yt-dlp~~ sections are for internal builds and existing PushAgent deployments.
+
 ## Support
 
 For QiuyuRemote app support, feedback, bug reports, feature requests, and
@@ -13,7 +15,7 @@ PushAgent questions, please open an issue here:
 <https://github.com/iansiu/PushAgent/issues>
 
 Push Agent runs on the user's download server. It watches qBittorrent,
-Transmission, aria2, and optional yt-dlp tasks, then sends signed task events to
+Transmission, aria2, and optional ~~yt-dlp~~ tasks, then sends signed task events to
 Qiuyu's Push Relay so QiuyuRemote devices can receive download-complete,
 download-failed, and server online/offline notifications.
 
@@ -52,19 +54,19 @@ reliably run from the app alone:
 | Remote download completed or failed notifications | Yes |
 | Long-running no-data task alerts | Yes |
 | Download server offline or online notifications | Yes |
-| yt-dlp downloads | Yes |
-| yt-dlp cookie management | Yes |
-| Sharing a YouTube, TikTok, or other media URL to QiuyuRemote for remote download | Yes, through a configured yt-dlp Push Agent |
+| <del>yt-dlp downloads</del> | <del>Yes</del> |
+| <del>yt-dlp cookie management</del> | <del>Yes</del> |
+| <del>Sharing a YouTube, TikTok, or other media URL to QiuyuRemote for remote download</del> | <del>Yes, through a configured yt-dlp Push Agent</del> |
 
 In short: Push Agent is not required for the basic download-manager experience.
-It is required for server-side monitoring, push notifications, and yt-dlp.
+It is required for server-side monitoring, push notifications, and ~~yt-dlp~~.
 
 ## Quick Start
 
 ### 1. Install The Agent
 
 Clone the public repository on the server that runs qBittorrent, Transmission,
-aria2, or yt-dlp. Install Node.js 18 or later, then enter the Agent folder:
+aria2, or ~~yt-dlp~~. Install Node.js 18 or later, then enter the Agent folder:
 
 ```sh
 git clone https://github.com/iansiu/PushAgent.git /root/PushAgent
@@ -97,6 +99,7 @@ For a normal user, the top of `config.json` should look like this:
   },
   "monitor": {
     "pollIntervalSeconds": 30,
+    "serviceStatusNoticeEnabled": true,
     "inactiveDownloadNoticeEnabled": true,
     "inactiveDownloadNoticeSeconds": 1800
   },
@@ -116,7 +119,7 @@ The default `relay.urls` already includes Qiuyu's primary and fallback Relay.
 Do not change it unless you are testing your own private Relay.
 
 `config.example.json` also includes qBittorrent, Transmission, aria2, and
-yt-dlp templates with `"enabled": false`. Keep unused services disabled, or
+~~yt-dlp~~ templates with `"enabled": false`. Keep unused services disabled, or
 delete their blocks entirely. Set `"enabled": true` only for services that are
 actually running on this server.
 
@@ -189,7 +192,7 @@ If you keep `liveEvents` disabled, increase aria2's own `max-download-result`
 setting and keep `stoppedTaskLimit` high enough, otherwise very fast completed
 tasks may not have details available when the Agent polls.
 
-yt-dlp example:
+~~yt-dlp~~ example:
 
 ```json
 {
@@ -216,40 +219,40 @@ yt-dlp example:
 }
 ```
 
-Install yt-dlp on the Agent server first, for example with `pipx install yt-dlp`
+Install ~~yt-dlp~~ on the Agent server first, for example with `pipx install yt-dlp`
 or your system package manager. Install `ffmpeg` too if you keep the default
-`format` value `bv*+ba/b`, because yt-dlp may download separate video and audio
+`format` value `bv*+ba/b`, because ~~yt-dlp~~ may download separate video and audio
 streams and then merge them. During diagnostics the Agent reports
 `ytDlpVersion`, `ffmpegAvailable`, and `ffmpegVersion`; if a merge format needs
 ffmpeg but ffmpeg cannot be found, the server is marked unavailable with
 `code: "ffmpeg_missing"` instead of waiting for the first task to fail.
 
-QiuyuRemote does not run yt-dlp on iPhone, iPad, or Mac; it sends the media page
+QiuyuRemote does not run ~~yt-dlp~~ on iPhone, iPad, or Mac; it sends the media page
 URL to this Agent API and displays the task state returned by the Agent. Keep
 `noPlaylist` enabled unless you intentionally want one submitted URL to expand
 into a playlist download.
 
-Useful yt-dlp options:
+Useful ~~yt-dlp~~ options:
 
-- `binaryPath`: the yt-dlp command. Use `"yt-dlp"` if it is in `PATH`, or an
+- `binaryPath`: the ~~yt-dlp~~ command. Use `"yt-dlp"` if it is in `PATH`, or an
   absolute path such as `"/usr/local/bin/yt-dlp"` if your service environment
   cannot find it.
 - `ffmpegPath`: the ffmpeg command or absolute path. Use `"ffmpeg"` if it is in
   `PATH`.
-- `downloadDir`: default directory for yt-dlp downloads. A per-task directory
+- `downloadDir`: default directory for ~~yt-dlp~~ downloads. A per-task directory
   entered in QiuyuRemote overrides this value for that task.
-- `storageKey`: stable key used for yt-dlp task history and site-cookie storage.
-  Keep this value unchanged when you update yt-dlp, change `downloadDir`, or
-  reinstall QiuyuRemote. For a single yt-dlp service, use `"default"`.
-- `statePath`: optional absolute or relative JSON file path for yt-dlp task
+- `storageKey`: stable key used for ~~yt-dlp~~ task history and site-cookie storage.
+  Keep this value unchanged when you update ~~yt-dlp~~, change `downloadDir`, or
+  reinstall QiuyuRemote. For a single ~~yt-dlp~~ service, use `"default"`.
+- `statePath`: optional absolute or relative JSON file path for ~~yt-dlp~~ task
   history. If omitted, Push Agent stores history under
   `data/yt-dlp-tasks/<storageKey>.json`. Keep this file when upgrading.
-- `historyLimit`: maximum number of yt-dlp task records retained by the Agent.
+- `historyLimit`: maximum number of ~~yt-dlp~~ task records retained by the Agent.
   The default is `1000`.
-- `format`: default yt-dlp format selector. `bv*+ba/b` asks for best video plus
+- `format`: default ~~yt-dlp~~ format selector. `bv*+ba/b` asks for best video plus
   best audio, then falls back to the best single-file format when needed. A
   per-task format entered in QiuyuRemote overrides this value.
-- `outputTemplate`: default filename template. The default omits yt-dlp's media
+- `outputTemplate`: default filename template. The default omits ~~yt-dlp~~'s media
   id suffix. A per-task output filename entered in QiuyuRemote overrides this
   value.
 - `cookiesPath`: optional fallback Netscape-format cookies file path on the
@@ -258,7 +261,7 @@ Useful yt-dlp options:
   be a single file such as `/root/PushAgent/cookies/all-cookies.txt` containing
   cookies for several domains.
 - `cookiesDir`: optional directory where QiuyuRemote Cookie Management stores
-  site-specific cookies for this yt-dlp service. If omitted, Push Agent uses
+  site-specific cookies for this ~~yt-dlp~~ service. If omitted, Push Agent uses
   `data/ytdlp-cookies/<storageKey>`. Imported files use stable names such as
   `youtube.txt`, `tiktok.txt`, `douyin.txt`, `bilibili.txt`, and `others.txt`.
 - `proxy`: optional proxy URL. A per-task proxy entered in QiuyuRemote overrides
@@ -266,20 +269,20 @@ Useful yt-dlp options:
 - `requireCookiesForYoutube`: if `true`, YouTube URLs fail early with a clear
   cookie-required error when no task, imported YouTube, or fallback cookie file
   is available.
-- `extraArgs`: advanced yt-dlp arguments as a JSON array, for example
+- `extraArgs`: advanced ~~yt-dlp~~ arguments as a JSON array, for example
   `["--merge-output-format", "mp4"]`. The Agent passes these as a spawn argument
   array, not a shell string. Arguments controlled by QiuyuRemote, such as
   `--output`, `--format`, `--cookies`, `--proxy`, and `--paths`, are ignored
   here to keep task handling predictable.
 
 Some sites, especially YouTube, may require login cookies. This is not a
-QiuyuRemote or Push Agent failure; it is yt-dlp asking for authentication.
+QiuyuRemote or Push Agent failure; it is ~~yt-dlp~~ asking for authentication.
 Export a Netscape-format `cookies.txt` from a browser where the account is
 already logged in, then either import it in QiuyuRemote Cookie Management or set
 `cookiesPath` to an absolute server path such as
 `"/root/PushAgent/cookies/youtube.txt"`. Restart the Agent after changing the
 config file. A single Netscape-format cookie file can contain cookies for
-multiple domains; yt-dlp will use only the cookies matching each submitted URL.
+multiple domains; ~~yt-dlp~~ will use only the cookies matching each submitted URL.
 
 Cookie selection order is:
 
@@ -308,18 +311,18 @@ Keep all cookie files private because they can grant access to browser sessions.
 The expiration shown in QiuyuRemote is only an estimate from the cookie file.
 Real availability can change earlier because of logout, password changes,
 account security checks, server IP/location changes, site-side invalidation,
-rate limits, or yt-dlp extractor changes. If downloads start failing, re-export
+rate limits, or ~~yt-dlp~~ extractor changes. If downloads start failing, re-export
 and re-import the cookie file.
 
 For a personal server, a single fallback file such as
 `"/root/PushAgent/cookies/all-cookies.txt"` is usually the simplest config. If
-you prefer to keep sites separate at the config level, create multiple yt-dlp
+you prefer to keep sites separate at the config level, create multiple ~~yt-dlp~~
 service blocks with different `name` values and different `cookiesPath` files,
 such as `youtube.txt`, `tiktok.txt`, and `bilibili.txt`. If you want YouTube
 downloads to fail early whenever no cookie source is available, set
 `requireCookiesForYoutube` to `true`.
 
-YouTube may also require yt-dlp's external JavaScript support for signature and
+YouTube may also require ~~yt-dlp~~'s external JavaScript support for signature and
 `n` challenge solving. Install Deno, make it visible to both your shell and
 systemd, then test the exact server command before using QiuyuRemote:
 
@@ -347,11 +350,11 @@ yt-dlp -F \
 
 The expected output should include `[jsc:deno] Solving JS challenges using deno`
 and list real audio/video formats such as 720p or 1080p. If the output only
-shows storyboard images, update yt-dlp and check Deno/EJS again. If YouTube
+shows storyboard images, update ~~yt-dlp~~ and check Deno/EJS again. If YouTube
 returns `HTTP Error 429: Too Many Requests`, the server IP is being rate limited;
 wait before retrying or configure `proxy`.
 
-After that, put the same options into the yt-dlp service config:
+After that, put the same options into the ~~yt-dlp~~ service config:
 
 ```json
 {
@@ -376,11 +379,11 @@ systemctl restart pushagent
 In QiuyuRemote, add a download server with type `yt-dlp`, host/port pointing to
 this Push Agent, and path `v1/ytdlp`. If the app connects from another device,
 set `apiKey` in `config.json`, restart the Agent, and enter the same value in
-QiuyuRemote's yt-dlp server API Key field.
+QiuyuRemote's ~~yt-dlp~~ server API Key field.
 
-If one Agent exposes multiple enabled yt-dlp service blocks, old requests that
-do not include a query string continue to use the first enabled yt-dlp service.
-To keep multiple yt-dlp services isolated, point QiuyuRemote at
+If one Agent exposes multiple enabled ~~yt-dlp~~ service blocks, old requests that
+do not include a query string continue to use the first enabled ~~yt-dlp~~ service.
+To keep multiple ~~yt-dlp~~ services isolated, point QiuyuRemote at
 `v1/ytdlp?server=<id-or-name>` where the selector can be the service `id`,
 `name`, `storageKey`, endpoint, or base URL shown in the Agent web console.
 
@@ -455,7 +458,7 @@ http://YOUR_DOWNLOAD_SERVER_IP:8765
 The console can:
 
 - show Agent status, config path, uptime, and current Relay identity
-- show qBittorrent, Transmission, aria2, and yt-dlp monitor status
+- show qBittorrent, Transmission, aria2, and ~~yt-dlp~~ monitor status
 - show aria2 live event connection status
 - run diagnostics for configured download services
 - pair another QiuyuRemote device
@@ -625,6 +628,7 @@ successful notifications.
 | `dataDir` | Where Agent stores `relay-identity.json`, task state, and server state. |
 | `relay.urls` | Push Relay addresses. The example already includes Qiuyu's primary and fallback Relay. |
 | `monitor.pollIntervalSeconds` | Poll interval for download services. Default `30`; minimum runtime interval is `10`. |
+| `monitor.serviceStatusNoticeEnabled` | Whether to notify when a monitored download service goes offline or comes back online. Default `true`. Set `false` to keep task notifications while muting service status changes. |
 | `monitor.inactiveDownloadNoticeEnabled` | Whether to notify when a running incomplete task receives no data for a while. Default `true`. |
 | `monitor.inactiveDownloadNoticeSeconds` | No-data threshold in seconds. Default `1800` (`30` minutes). |
 | `updateCheck.enabled` | Whether the Agent web page checks for a newer public PushAgent version. Default `true`. |
@@ -632,7 +636,7 @@ successful notifications.
 | `updateCheck.url` | Update metadata URL. By default this reads the public `package.json` version from GitHub. |
 | `updateCheck.intervalSeconds` | Minimum cache interval for update checks. Default `3600`. |
 | `updateCheck.timeoutSeconds` | Network timeout for update checks. Default `4`. |
-| `servers` | qBittorrent, Transmission, aria2, and optional yt-dlp connection configs. |
+| `servers` | qBittorrent, Transmission, aria2, and optional ~~yt-dlp~~ connection configs. |
 | `servers[].name` | Display name shown in logs and the Agent web page. You can change it at any time. |
 | `servers[].type` | Download service type. Supported values: `qbit`, `transmission`, `aria2`, `ytdlp`. |
 | `servers[].enabled` | Whether this service is monitored. Omit it or set `true` to enable; set `false` to keep a template in the config without monitoring it. |
@@ -641,20 +645,20 @@ successful notifications.
 | `servers[].allowInvalidTLS` | Allow invalid TLS certificates for that local server. Mainly useful for local aria2 HTTPS RPC. |
 | `servers[].liveEvents` | aria2 only. Enables WebSocket terminal-event notifications. Default is enabled unless explicitly false. |
 | `servers[].stoppedTaskLimit` | aria2 only. Number of stopped tasks to query during polling. |
-| `servers[].binaryPath` | yt-dlp only. Command name or absolute path, default `yt-dlp`. |
-| `servers[].downloadDir` | yt-dlp only. Directory where yt-dlp writes files. |
-| `servers[].storageKey` | yt-dlp only. Stable key for task history and site-cookie storage. Keep it unchanged across upgrades. |
-| `servers[].statePath` | yt-dlp only. Optional JSON file path for task history. Defaults to `data/yt-dlp-tasks/<storageKey>.json`. |
-| `servers[].historyLimit` | yt-dlp only. Number of task history records retained by Push Agent. Default `1000`. |
-| `servers[].format` | yt-dlp only. Optional default format selector. |
-| `servers[].outputTemplate` | yt-dlp only. Output filename template. The default keeps titles shorter with `%(title).80B.%(ext)s`. |
-| `servers[].cookiesPath` | yt-dlp only. Optional fallback Netscape-format cookie file used when no task-specific or App-imported site cookie is available. |
-| `servers[].cookiesDir` | yt-dlp only. Directory used by QiuyuRemote Cookie Management for site-specific cookie files. Defaults to `data/ytdlp-cookies/<storageKey>`. |
-| `servers[].proxy` | yt-dlp only. Optional proxy passed to yt-dlp. |
-| `servers[].requireCookiesForYoutube` | yt-dlp only. If `true`, YouTube URLs fail with a friendly cookie-required error when no task, imported, or fallback cookie file is available. |
-| `servers[].cleanHashtags` | yt-dlp only. Default `true`; removes trailing hashtag text from titles before filenames are generated. |
-| `servers[].maxConcurrent` | yt-dlp only. Maximum active yt-dlp processes for this Agent service. Default `10`. |
-| `servers[].noPlaylist` | yt-dlp only. Default `true`; keeps one submitted URL from expanding into a playlist unless explicitly disabled. |
+| `servers[].binaryPath` | ~~yt-dlp~~ only. Command name or absolute path, default `yt-dlp`. |
+| `servers[].downloadDir` | ~~yt-dlp~~ only. Directory where ~~yt-dlp~~ writes files. |
+| `servers[].storageKey` | ~~yt-dlp~~ only. Stable key for task history and site-cookie storage. Keep it unchanged across upgrades. |
+| `servers[].statePath` | ~~yt-dlp~~ only. Optional JSON file path for task history. Defaults to `data/yt-dlp-tasks/<storageKey>.json`. |
+| `servers[].historyLimit` | ~~yt-dlp~~ only. Number of task history records retained by Push Agent. Default `1000`. |
+| `servers[].format` | ~~yt-dlp~~ only. Optional default format selector. |
+| `servers[].outputTemplate` | ~~yt-dlp~~ only. Output filename template. The default keeps titles shorter with `%(title).80B.%(ext)s`. |
+| `servers[].cookiesPath` | ~~yt-dlp~~ only. Optional fallback Netscape-format cookie file used when no task-specific or App-imported site cookie is available. |
+| `servers[].cookiesDir` | ~~yt-dlp~~ only. Directory used by QiuyuRemote Cookie Management for site-specific cookie files. Defaults to `data/ytdlp-cookies/<storageKey>`. |
+| `servers[].proxy` | ~~yt-dlp~~ only. Optional proxy passed to ~~yt-dlp~~. |
+| <del>`servers[].requireCookiesForYoutube`</del> | <del>yt-dlp only. If `true`, YouTube URLs fail with a friendly cookie-required error when no task, imported, or fallback cookie file is available.</del> |
+| `servers[].cleanHashtags` | ~~yt-dlp~~ only. Default `true`; removes trailing hashtag text from titles before filenames are generated. |
+| `servers[].maxConcurrent` | ~~yt-dlp~~ only. Maximum active ~~yt-dlp~~ processes for this Agent service. Default `10`. |
+| `servers[].noPlaylist` | ~~yt-dlp~~ only. Default `true`; keeps one submitted URL from expanding into a playlist unless explicitly disabled. |
 
 ## Common Commands
 
@@ -823,7 +827,7 @@ curl http://127.0.0.1:8765/v1/diagnostics
 ```
 
 3. Check the terminal or systemd log. The Agent prints qBittorrent,
-Transmission, aria2, yt-dlp, pairing, Relay, and APNs delivery summaries.
+Transmission, aria2, ~~yt-dlp~~, pairing, Relay, and APNs delivery summaries.
 
 4. Check Relay health:
 

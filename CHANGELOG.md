@@ -5,6 +5,9 @@ All notable changes to QiuyuRemote PushAgent will be documented in this file.
 ## [Unreleased] - 2026-06-26
 
 ### Improved
+- Clarified that the retained yt-dlp documentation is for internal builds and existing PushAgent deployments; the App Store production build does not include the integration.
+- Added a `monitor.serviceStatusNoticeEnabled` switch to mute download-service online/offline notifications while keeping task notifications enabled.
+- Simplified download-service online/offline notification text to short status-only messages.
 - Improved push delivery recovery so partially delivered events retry only the devices that did not receive the notification.
 - Added duplicate suppression and APNs collapse IDs for recent task/server events to avoid repeated successful notifications during retry recovery.
 - Clarified localized documentation for yt-dlp cookie priority, iOS cookie export, free/Pro behavior, and delivery retry behavior.

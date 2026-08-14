@@ -2,6 +2,8 @@
 
 言語：[English](../README.md) | [简体中文](README.zh-Hans.md) | [繁體中文](README.zh-Hant.md) | 日本語 | [한국어](README.ko.md) | [Русский](README.ru.md)
 
+> **本番版の状態：** QiuyuRemote の App Store 本番ビルドには ~~yt-dlp~~ 統合と Cookie 管理は含まれません。以下の ~~yt-dlp~~ セクションは内部ビルドと既存の PushAgent 配置のために残しています。
+
 公開リポジトリ：<https://github.com/iansiu/PushAgent>
 
 App ガイド：[QiuyuRemote App ガイド](APP_GUIDE.ja.md)
@@ -11,7 +13,7 @@ App ガイド：[QiuyuRemote App ガイド](APP_GUIDE.ja.md)
 QiuyuRemote アプリのサポート、フィードバック、不具合報告、機能要望、PushAgent に関する質問は、こちらで Issue を作成してください：
 <https://github.com/iansiu/PushAgent/issues>
 
-Push Agent はダウンロードサーバー上で動作し、qBittorrent、Transmission、aria2、任意の yt-dlp タスクを監視します。ダウンロード完了、失敗、長時間データが流れていない状態、サーバーのオフライン/復帰などのイベントを Qiuyu's Push Relay に送信し、QiuyuRemote 側でシステム通知を表示します。
+Push Agent はダウンロードサーバー上で動作し、qBittorrent、Transmission、aria2、任意の ~~yt-dlp~~ タスクを監視します。ダウンロード完了、失敗、長時間データが流れていない状態、サーバーのオフライン/復帰などのイベントを Qiuyu's Push Relay に送信し、QiuyuRemote 側でシステム通知を表示します。
 
 Push Agent は軽量です。
 
@@ -43,11 +45,11 @@ Push Agent は、アプリ単体ではバックグラウンドで安定して実
 | リモートダウンロード完了または失敗通知 | 必要 |
 | 長時間データが流れていないタスクの通知 | 必要 |
 | ダウンロードサーバーのオフラインまたは復帰通知 | 必要 |
-| yt-dlp ダウンロード | 必要 |
-| yt-dlp Cookie 管理 | 必要 |
-| YouTube、TikTok などの URL を QiuyuRemote に共有してリモートダウンロード | 必要。yt-dlp Push Agent の設定が必要です |
+| <del>yt-dlp ダウンロード</del> | <del>必要</del> |
+| <del>yt-dlp Cookie 管理</del> | <del>必要</del> |
+| YouTube、TikTok などの URL を QiuyuRemote に共有してリモートダウンロード | 必要。~~yt-dlp~~ Push Agent の設定が必要です |
 
-つまり、Push Agent は QiuyuRemote を使い始めるための必須条件ではありません。サーバー側監視、プッシュ通知、yt-dlp のための拡張機能です。
+つまり、Push Agent は QiuyuRemote を使い始めるための必須条件ではありません。サーバー側監視、プッシュ通知、~~yt-dlp~~ のための拡張機能です。
 
 ## クイックスタート
 
@@ -86,6 +88,7 @@ cp config.example.json config.json
   },
   "monitor": {
     "pollIntervalSeconds": 30,
+    "serviceStatusNoticeEnabled": true,
     "inactiveDownloadNoticeEnabled": true,
     "inactiveDownloadNoticeSeconds": 1800
   },
@@ -100,7 +103,7 @@ cp config.example.json config.json
 }
 ```
 
-実際に使うダウンロードサービスだけを `servers` に追加してください。`config.example.json` には qBittorrent、Transmission、aria2、yt-dlp のテンプレートがありますが、既定では `"enabled": false` です。
+実際に使うダウンロードサービスだけを `servers` に追加してください。`config.example.json` には qBittorrent、Transmission、aria2、~~yt-dlp~~ のテンプレートがありますが、既定では `"enabled": false` です。
 
 ### 3. ダウンロードサービスを設定
 
@@ -147,7 +150,7 @@ aria2:
 
 aria2 が自己署名証明書の HTTPS を使う場合は `allowInvalidTLS` を `true` にできます。`liveEvents` は高速に完了する aria2 タスクを取りこぼしにくくするため、通常は有効のままにしてください。
 
-yt-dlp:
+~~yt-dlp~~:
 
 ```json
 {
@@ -174,23 +177,23 @@ yt-dlp:
 }
 ```
 
-先にサーバーへ yt-dlp をインストールしてください。既定の `format` が `bv*+ba/b` の場合、動画と音声の結合に ffmpeg が必要になることがあります。診断結果には `ytDlpVersion`、`ffmpegAvailable`、`ffmpegVersion` が表示されます。
+先にサーバーへ ~~yt-dlp~~ をインストールしてください。既定の `format` が `bv*+ba/b` の場合、動画と音声の結合に ffmpeg が必要になることがあります。診断結果には `ytDlpVersion`、`ffmpegAvailable`、`ffmpegVersion` が表示されます。
 
-YouTube など一部のサイトはログイン Cookie を要求する場合があります。これは Push Agent の障害ではなく、yt-dlp 側の認証要求です。ログイン済みブラウザから Netscape 形式の `cookies.txt` をエクスポートし、QiuyuRemote の Cookie 管理でインポートするか、サーバーへアップロードして `cookiesPath` に絶対パスを設定してください。
+YouTube など一部のサイトはログイン Cookie を要求する場合があります。これは Push Agent の障害ではなく、~~yt-dlp~~ 側の認証要求です。ログイン済みブラウザから Netscape 形式の `cookies.txt` をエクスポートし、QiuyuRemote の Cookie 管理でインポートするか、サーバーへアップロードして `cookiesPath` に絶対パスを設定してください。
 
 ```json
 "cookiesPath": "/root/PushAgent/cookies/all-cookies.txt"
 ```
 
-1 つの Cookie ファイルに複数ドメインの Cookie を入れることができます。yt-dlp は URL に合う Cookie だけを使います。Cookie ファイルは公開しないでください。
+1 つの Cookie ファイルに複数ドメインの Cookie を入れることができます。~~yt-dlp~~ は URL に合う Cookie だけを使います。Cookie ファイルは公開しないでください。
 
 Cookie の選択順は、タスクで明示された `cookiesPath`、QiuyuRemote にインポートされ `cookiesDir` に保存された該当サイトの Cookie、`config.json` の fallback `cookiesPath`、Cookie なし、の順です。つまり、アプリにインポートしたサイト Cookie は設定ファイルより優先されます。インポート済みファイルが空、期限切れ、または無効な場合、タスクは Cookie エラーになり、設定ファイルへ静かにフォールバックしません。fallback `cookiesPath` を使い直したい場合は、アプリ側の該当サイト Cookie を更新または削除してください。
 
 デスクトップブラウザーでは `Get cookies.txt LOCALLY` 拡張機能で標準 Netscape 形式の Cookie ファイルをエクスポートできます。iOS では Microsoft Edge と `Cookie-Editor` 拡張機能を使い、Export Format を `Netscape` に設定して現在サイトの Cookie をコピーし、`Create a new cookie file` ショートカットを実行できます: `https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`。ショートカットは `On My iPhone/Downloads` に Cookie ファイルを作成し、QiuyuRemote に直接インポートできます。
 
-QiuyuRemote に表示される Cookie の有効期限は推定値です。実際に使えるかどうかは、ログアウト、パスワード変更、アカウント保護、サーバー IP/地域の変化、サイト側の無効化、レート制限、yt-dlp extractor の変更などにも影響されます。
+QiuyuRemote に表示される Cookie の有効期限は推定値です。実際に使えるかどうかは、ログアウト、パスワード変更、アカウント保護、サーバー IP/地域の変化、サイト側の無効化、レート制限、~~yt-dlp~~ extractor の変更などにも影響されます。
 
-YouTube では、署名と `n` challenge を解くために yt-dlp の外部 JavaScript サポートが必要になることがあります。Deno をインストールし、現在の shell と systemd の両方から見える場所に置いてください。
+YouTube では、署名と `n` challenge を解くために ~~yt-dlp~~ の外部 JavaScript サポートが必要になることがあります。Deno をインストールし、現在の shell と systemd の両方から見える場所に置いてください。
 
 ```bash
 curl -fsSL https://deno.land/install.sh | sh
@@ -212,9 +215,9 @@ yt-dlp -F \
   "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
-正常なら `[jsc:deno] Solving JS challenges using deno` が表示され、720p や 1080p などの実際の音声/動画形式が列挙されます。storyboard 画像だけの場合は、yt-dlp、Deno、または EJS コンポーネントを確認してください。`HTTP Error 429: Too Many Requests` は YouTube がサーバー IP を一時的に制限している状態なので、時間を置くか `proxy` を設定してください。
+正常なら `[jsc:deno] Solving JS challenges using deno` が表示され、720p や 1080p などの実際の音声/動画形式が列挙されます。storyboard 画像だけの場合は、~~yt-dlp~~、Deno、または EJS コンポーネントを確認してください。`HTTP Error 429: Too Many Requests` は YouTube がサーバー IP を一時的に制限している状態なので、時間を置くか `proxy` を設定してください。
 
-テストに成功したら、同じオプションを yt-dlp サービス設定に入れます。
+テストに成功したら、同じオプションを ~~yt-dlp~~ サービス設定に入れます。
 
 ```json
 {
@@ -330,7 +333,7 @@ curl -X POST http://127.0.0.1:8765/v1/agent/pair \
 
 `data/relay-identity.json` に保存された Relay identity が Push Relay 側に存在しない場合、Agent Web コンソールで手動ペアリングすると、古い identity を使わずに一度だけ再試行し、Relay が返した新しい Agent ID を保存します。通常は、Relay が保存済みの有効な Agent identity と異なる Agent ID を返した場合、Agent は静かに置き換えません。
 
-1 つの Agent に有効な yt-dlp サービスが複数ある場合、query のない古いリクエストは引き続き最初の有効な yt-dlp を使います。分離したい場合は、QiuyuRemote のパスを `v1/ytdlp?server=<id-or-name>` にしてください。selector には Agent Web コンソールに表示されるサービス `id`、`name`、`storageKey`、endpoint、base URL を指定できます。
+1 つの Agent に有効な ~~yt-dlp~~ サービスが複数ある場合、query のない古いリクエストは引き続き最初の有効な ~~yt-dlp~~ を使います。分離したい場合は、QiuyuRemote のパスを `v1/ytdlp?server=<id-or-name>` にしてください。selector には Agent Web コンソールに表示されるサービス `id`、`name`、`storageKey`、endpoint、base URL を指定できます。
 
 ## API Key
 
@@ -425,6 +428,7 @@ Push Relay がイベントを受け付けたものの、どのデバイスにも
 | `dataDir` | `relay-identity.json`、タスク状態、サーバー状態を保存する場所。 |
 | `relay.urls` | Push Relay アドレス。例には Qiuyu のプライマリ Relay とフォールバック Relay が含まれています。 |
 | `monitor.pollIntervalSeconds` | ダウンロードサービスのポーリング間隔。既定は `30` 秒、実行時の最小値は `10` 秒です。 |
+| `monitor.serviceStatusNoticeEnabled` | 監視対象のダウンロードサービスがオフラインまたはオンラインに戻ったときに通知するかどうか。既定は `true`。`false` にするとタスク通知は残したままサービス状態通知だけを止めます。 |
 | `monitor.inactiveDownloadNoticeEnabled` | 実行中の未完了タスクが長時間データを受信しない場合に通知するかどうか。既定は `true`。 |
 | `monitor.inactiveDownloadNoticeSeconds` | データなし判定の秒数。既定は `1800` 秒、つまり 30 分です。 |
 | `updateCheck.enabled` | Agent Web ページで公開 PushAgent の新バージョンを確認するかどうか。既定は `true`。 |
@@ -432,7 +436,7 @@ Push Relay がイベントを受け付けたものの、どのデバイスにも
 | `updateCheck.url` | 更新メタデータ URL。既定では GitHub 上の公開 `package.json` から version を読みます。 |
 | `updateCheck.intervalSeconds` | 更新確認のキャッシュ間隔。既定は `3600` 秒。 |
 | `updateCheck.timeoutSeconds` | 更新確認のネットワークタイムアウト。既定は `4` 秒。 |
-| `servers` | qBittorrent、Transmission、aria2、任意の yt-dlp 接続設定。 |
+| `servers` | qBittorrent、Transmission、aria2、任意の ~~yt-dlp~~ 接続設定。 |
 | `servers[].name` | 表示名。いつでも変更できます。 |
 | `servers[].type` | サービス種別。`qbit`、`transmission`、`aria2`、`ytdlp` をサポートします。 |
 | `servers[].enabled` | 監視するかどうか。省略または `true` で有効、`false` でテンプレートだけ残して監視しません。 |
@@ -441,23 +445,23 @@ Push Relay がイベントを受け付けたものの、どのデバイスにも
 | `servers[].allowInvalidTLS` | そのローカルサーバーの無効な TLS 証明書を許可するかどうか。主にローカル aria2 HTTPS RPC 用です。 |
 | `servers[].liveEvents` | aria2 のみ。WebSocket 終端イベント通知を有効にします。既定は有効。 |
 | `servers[].stoppedTaskLimit` | aria2 のみ。ポーリング時に取得する停止済みタスク数。 |
-| `servers[].binaryPath` | yt-dlp のみ。コマンド名または絶対パス。既定は `yt-dlp`。 |
-| `servers[].ffmpegPath` | yt-dlp のみ。ffmpeg のコマンド名または絶対パス。既定は `ffmpeg`。 |
-| `servers[].downloadDir` | yt-dlp のみ。既定の保存先。QiuyuRemote のタスクごとの保存先が優先されます。 |
-| `servers[].storageKey` | yt-dlp のみ。タスク履歴とサイト Cookie 保存に使う安定した key。アップグレードや保存先変更後も変えないでください。 |
-| `servers[].statePath` | yt-dlp のみ。タスク履歴 JSON ファイルのパス。既定は `data/yt-dlp-tasks/<storageKey>.json` です。 |
-| `servers[].historyLimit` | yt-dlp のみ。Push Agent が保持するタスク履歴数。既定は `1000` です。 |
-| `servers[].format` | yt-dlp のみ。既定の format selector。 |
-| `servers[].outputTemplate` | yt-dlp のみ。出力ファイル名テンプレート。既定では `%(title).80B.%(ext)s` を使いタイトルを短くします。 |
-| `servers[].cookiesPath` | yt-dlp のみ。タスク指定やアプリにインポートされたサイト Cookie がない場合に使う fallback の Netscape Cookie ファイル。 |
-| `servers[].cookiesDir` | yt-dlp のみ。QiuyuRemote Cookie 管理がサイト別 Cookie を保存するディレクトリ。既定は `data/ytdlp-cookies/<storageKey>` です。 |
-| `servers[].proxy` | yt-dlp のみ。yt-dlp に渡す proxy。 |
-| `servers[].requireCookiesForYoutube` | yt-dlp のみ。`true` の場合、タスク指定、アプリインポート、fallback のいずれにも Cookie がない YouTube URL は早めにわかりやすいエラーになります。 |
-| `servers[].cleanHashtags` | yt-dlp のみ。既定は `true`。ファイル名生成前にタイトル末尾の hashtag テキストを除去します。 |
-| `servers[].maxConcurrent` | yt-dlp のみ。同時実行する yt-dlp プロセス数。既定は `10`。 |
-| `servers[].noPlaylist` | yt-dlp のみ。既定は `true`。1 つの URL がプレイリスト全体に展開されるのを防ぎます。 |
-| `servers[].restrictFilenames` | yt-dlp のみ。より保守的なファイル名文字を使います。 |
-| `servers[].extraArgs` | yt-dlp のみ。上級者向け追加引数の配列。Agent は shell 文字列ではなく spawn の引数配列として渡します。QiuyuRemote が制御する `--output`、`--format`、`--cookies`、`--proxy`、`--paths` はここでは無視されます。 |
+| `servers[].binaryPath` | ~~yt-dlp~~ のみ。コマンド名または絶対パス。既定は `yt-dlp`。 |
+| `servers[].ffmpegPath` | ~~yt-dlp~~ のみ。ffmpeg のコマンド名または絶対パス。既定は `ffmpeg`。 |
+| `servers[].downloadDir` | ~~yt-dlp~~ のみ。既定の保存先。QiuyuRemote のタスクごとの保存先が優先されます。 |
+| `servers[].storageKey` | ~~yt-dlp~~ のみ。タスク履歴とサイト Cookie 保存に使う安定した key。アップグレードや保存先変更後も変えないでください。 |
+| `servers[].statePath` | ~~yt-dlp~~ のみ。タスク履歴 JSON ファイルのパス。既定は `data/yt-dlp-tasks/<storageKey>.json` です。 |
+| `servers[].historyLimit` | ~~yt-dlp~~ のみ。Push Agent が保持するタスク履歴数。既定は `1000` です。 |
+| `servers[].format` | ~~yt-dlp~~ のみ。既定の format selector。 |
+| `servers[].outputTemplate` | ~~yt-dlp~~ のみ。出力ファイル名テンプレート。既定では `%(title).80B.%(ext)s` を使いタイトルを短くします。 |
+| `servers[].cookiesPath` | ~~yt-dlp~~ のみ。タスク指定やアプリにインポートされたサイト Cookie がない場合に使う fallback の Netscape Cookie ファイル。 |
+| `servers[].cookiesDir` | ~~yt-dlp~~ のみ。QiuyuRemote Cookie 管理がサイト別 Cookie を保存するディレクトリ。既定は `data/ytdlp-cookies/<storageKey>` です。 |
+| `servers[].proxy` | ~~yt-dlp~~ のみ。~~yt-dlp~~ に渡す proxy。 |
+| `servers[].requireCookiesForYoutube` | ~~yt-dlp~~ のみ。`true` の場合、タスク指定、アプリインポート、fallback のいずれにも Cookie がない YouTube URL は早めにわかりやすいエラーになります。 |
+| `servers[].cleanHashtags` | ~~yt-dlp~~ のみ。既定は `true`。ファイル名生成前にタイトル末尾の hashtag テキストを除去します。 |
+| `servers[].maxConcurrent` | ~~yt-dlp~~ のみ。同時実行する ~~yt-dlp~~ プロセス数。既定は `10`。 |
+| `servers[].noPlaylist` | ~~yt-dlp~~ のみ。既定は `true`。1 つの URL がプレイリスト全体に展開されるのを防ぎます。 |
+| `servers[].restrictFilenames` | ~~yt-dlp~~ のみ。より保守的なファイル名文字を使います。 |
+| `servers[].extraArgs` | ~~yt-dlp~~ のみ。上級者向け追加引数の配列。Agent は shell 文字列ではなく spawn の引数配列として渡します。QiuyuRemote が制御する `--output`、`--format`、`--cookies`、`--proxy`、`--paths` はここでは無視されます。 |
 
 ## よく使うコマンド
 

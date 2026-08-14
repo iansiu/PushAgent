@@ -2,7 +2,9 @@
 
 语言：[English](../APP_GUIDE.md) | 简体中文 | [繁體中文](APP_GUIDE.zh-Hant.md) | [日本語](APP_GUIDE.ja.md) | [한국어](APP_GUIDE.ko.md) | [Русский](APP_GUIDE.ru.md)
 
-QiuyuRemote 可以只作为直接连接下载器的管理工具使用，也可以配合 Push Agent 获得服务器后台通知和 yt-dlp 能力。
+> **生产版状态：** QiuyuRemote 的 App Store 正式版不包含 ~~yt-dlp~~ 集成或 Cookie 管理。下面保留的 ~~yt-dlp~~ 章节用于内部构建和已有 PushAgent 部署。
+
+QiuyuRemote 可以只作为直接连接下载器的管理工具使用，也可以配合 Push Agent 获得服务器后台通知和 ~~yt-dlp~~ 能力。
 
 ## 基础模式和 Agent 模式
 
@@ -20,9 +22,9 @@ Push Agent 只用于服务器端后台能力：
 | 远程下载完成或失败通知 | 需要 |
 | 长时间无数据任务提醒 | 需要 |
 | 下载服务器离线或恢复通知 | 需要 |
-| yt-dlp 下载 | 需要 |
-| yt-dlp Cookie 管理 | 需要 |
-| 从其它 App 分享视频链接到 QiuyuRemote 后远程 yt-dlp 下载 | 需要 |
+| <del>yt-dlp 下载</del> | <del>需要</del> |
+| <del>yt-dlp Cookie 管理</del> | <del>需要</del> |
+| <del>从其它 App 分享视频链接到 QiuyuRemote 后远程 yt-dlp 下载</del> | <del>需要</del> |
 
 ## 免费版和 Pro 版
 
@@ -30,15 +32,15 @@ QiuyuRemote 可以免费下载和使用。免费版适合基础远程下载管�
 
 Pro 版适合需要更完整远程管理能力的用户。购买 Pro 后，可以解锁：
 
-- yt-dlp 下载
-- yt-dlp Cookie 管理，用于需要登录的网站内容
+- ~~yt-dlp~~ 下载
+- ~~yt-dlp~~ Cookie 管理，用于需要登录的网站内容
 - 通过 Push Agent 接收远程下载通知
 - iCloud 同步服务器配置和 App 设置
 - 离线库和离线任务管理
 - WebDAV 播放和文件访问
 - 下载完成通知
 - 高级服务器设置
-- 使用 yt-dlp 服务，并混用 aria2/qBittorrent/Transmission，而不是只能使用一种直连下载服务类型
+- 使用 ~~yt-dlp~~ 服务，并混用 aria2/qBittorrent/Transmission，而不是只能使用一种直连下载服务类型
 
 Pro 状态和 Push Agent 配对是两件事。购买 Pro 不会自动完成 Agent 配对，完成 Agent 配对也不代表存在 Pro 购买。
 
@@ -61,7 +63,7 @@ Pro 状态和 Push Agent 配对是两件事。购买 Pro 不会自动完成 Agen
 - Transmission：连接 Transmission RPC。
 - aria2：连接 aria2 JSON-RPC。
 - qBittorrent：连接 qBittorrent Web UI API。
-- yt-dlp：连接 PushAgent 的 `v1/ytdlp` API。yt-dlp 在服务器上运行，不在手机或 Mac 上运行。
+- ~~yt-dlp~~：连接 PushAgent 的 `v1/ytdlp` API。~~yt-dlp~~ 在服务器上运行，不在手机或 Mac 上运行。
 
 ## 添加下载
 
@@ -69,9 +71,9 @@ Pro 状态和 Push Agent 配对是两件事。购买 Pro 不会自动完成 Agen
 
 - qBittorrent 和 Transmission 适合磁力链接和 `.torrent` 文件。
 - aria2 可以处理普通 HTTP/HTTPS 文件链接、metalink、磁力链接和种子，具体取决于 aria2 配置。
-- yt-dlp 接收 HTTP/HTTPS 媒体页面链接，例如 YouTube、TikTok、Bilibili、Instagram、X、Threads，以及其它 yt-dlp 支持的网站。
+- ~~yt-dlp~~ 接收 HTTP/HTTPS 媒体页面链接，例如 YouTube、TikTok、Bilibili、Instagram、X、Threads，以及其它 ~~yt-dlp~~ 支持的网站。
 
-iPhone 和 iPad 上，可以从其它 App 分享链接到 QiuyuRemote。yt-dlp 分享需要先添加并连接 yt-dlp PushAgent 服务。受 iOS 系统限制，有时需要打开 QiuyuRemote 后才会完成提交。
+iPhone 和 iPad 上，可以从其它 App 分享链接到 QiuyuRemote。~~yt-dlp~~ 分享需要先添加并连接 ~~yt-dlp~~ PushAgent 服务。受 iOS 系统限制，有时需要打开 QiuyuRemote 后才会完成提交。
 
 ## URL Scheme 和快捷指令
 
@@ -93,7 +95,7 @@ qiuyuremote://addTask?type=ytdlp&url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3
 
 - qBittorrent 和 Transmission 接收磁力链接或 `.torrent` 链接。
 - aria2 可以接收普通文件链接、磁力链接和种子，具体取决于 aria2 配置。
-- yt-dlp 接收 HTTP/HTTPS 媒体页面链接，并且需要先配置 yt-dlp PushAgent 服务。
+- ~~yt-dlp~~ 接收 HTTP/HTTPS 媒体页面链接，并且需要先配置 ~~yt-dlp~~ PushAgent 服务。
 
 快捷指令也可以使用 `x-callback-url`：
 
@@ -116,7 +118,7 @@ qiuyuremote://x-callback-url/addTask?type=aria2&url=https%3A%2F%2Fexample.com%2F
 
 iPad 和 Mac 上，可以拖动表头分隔线调整列宽。名称列支持拉到更宽，方便查看长任务名。
 
-yt-dlp 任务会隐藏上传速度、上传大小、种子、下载者、分享率等种子任务字段。
+~~yt-dlp~~ 任务会隐藏上传速度、上传大小、种子、下载者、分享率等种子任务字段。
 
 ## 任务状态映射
 
@@ -144,13 +146,13 @@ QiuyuRemote 在任务列表里显示的是归一化后的 App 状态。下载服
 | aria2 | `error` | 错误 |
 | aria2 | `complete` | 已完成；如果有自动规则提示，会显示为已停止 |
 | aria2 | `removed` | 已移除 |
-| yt-dlp | `downloading`、`running` | 下载中 |
-| yt-dlp | `postprocessing`、`processing`、`merge`、`fixup`、`metadata`、`extract`、`remux`、`convert` | 处理中 |
-| yt-dlp | `moving` | 正在整理文件 |
-| yt-dlp | `completed` | 已完成 |
-| yt-dlp | `failed`、`error`、`lost` | 错误 |
-| yt-dlp | `paused` | 已暂停 |
-| yt-dlp | `queued` | 等待中 |
+| <del>yt-dlp</del> | <del>`downloading`、`running`</del> | <del>下载中</del> |
+| <del>yt-dlp</del> | <del>`postprocessing`、`processing`、`merge`、`fixup`、`metadata`、`extract`、`remux`、`convert`</del> | <del>处理中</del> |
+| <del>yt-dlp</del> | <del>`moving`</del> | <del>正在整理文件</del> |
+| <del>yt-dlp</del> | <del>`completed`</del> | <del>已完成</del> |
+| <del>yt-dlp</del> | <del>`failed`、`error`、`lost`</del> | <del>错误</del> |
+| <del>yt-dlp</del> | <del>`paused`</del> | <del>已暂停</del> |
+| <del>yt-dlp</del> | <del>`queued`</del> | <del>等待中</del> |
 
 其它无法识别的状态会直接显示下载服务返回的原始状态；如果服务返回空状态，则显示为未知。
 
@@ -204,7 +206,7 @@ QiuyuRemote 会先检测设备上已经安装的播放器，再显示快捷操�
 
 - 本地离线下载通知由 QiuyuRemote 自己发送。
 - 远程 qBittorrent、Transmission、aria2 任务通知需要下载服务器上运行并已配对的 Push Agent。
-- yt-dlp 任务通知也来自 Push Agent。
+- ~~yt-dlp~~ 任务通知也来自 Push Agent。
 - Push Relay 测试通知只验证这台设备能通过 Push Relay/APNs 收到通知，不代表服务器 Push Agent 已经配对或正在运行。
 
 接收远程下载通知的步骤：
@@ -215,21 +217,21 @@ QiuyuRemote 会先检测设备上已经安装的播放器，再显示快捷操�
 4. 输入配对码并完成 Agent 配对。
 5. 保持 PushAgent 在服务器上运行。
 
-## yt-dlp 和 Cookie
+## <del>yt-dlp 和 Cookie</del>
 
-yt-dlp 下载在 PushAgent 上执行。QiuyuRemote 只提交链接，并显示 Agent 返回的任务状态。
+~~yt-dlp~~ 下载在 PushAgent 上执行。QiuyuRemote 只提交链接，并显示 Agent 返回的任务状态。
 
-Cookie 管理按每个 yt-dlp PushAgent 服务隔离。Cookie 会直接上传到选中的 PushAgent 并保存在服务器上，不会发送到 Push Relay，不会通过 iCloud 同步，也不会写入日志。
+Cookie 管理按每个 ~~yt-dlp~~ PushAgent 服务隔离。Cookie 会直接上传到选中的 PushAgent 并保存在服务器上，不会发送到 Push Relay，不会通过 iCloud 同步，也不会写入日志。
 
 请使用浏览器导出的 Netscape 格式 `cookies.txt` 文件。Cookie 相当于网站登录凭据，请不要分享给他人。
 
 桌面浏览器可以使用 `Get cookies.txt LOCALLY` 插件；如果浏览器支持，它可以导出标准 Netscape 格式的 Cookie 文件。iOS 上可以使用 Microsoft Edge 浏览器配合 `Cookie-Editor` 插件，在插件设置里把 Export Format 设置为 `Netscape`，将当前网站 Cookie 复制到剪贴板，然后运行 `Create a new cookie file` 捷径：`https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`。这个捷径会在 `On My iPhone/Downloads` 目录生成 Cookie 文件，之后可以直接在 QiuyuRemote 里导入。
 
-每个 yt-dlp 任务使用 Cookie 的优先级是：任务单独指定的 cookies path、QiuyuRemote 中导入的对应站点 Cookie、PushAgent `config.json` 里的备用 `cookiesPath`。因此，App 里导入的站点 Cookie 优先级高于配置文件。
+每个 ~~yt-dlp~~ 任务使用 Cookie 的优先级是：任务单独指定的 cookies path、QiuyuRemote 中导入的对应站点 Cookie、PushAgent `config.json` 里的备用 `cookiesPath`。因此，App 里导入的站点 Cookie 优先级高于配置文件。
 
-QiuyuRemote 中显示的 Cookie 有效期只是根据 Cookie 文件估算。实际能否继续使用还会受到退出登录、修改密码、账号安全检查、服务器 IP/地区变化、网站主动失效、限流，以及 yt-dlp 解析器变化等因素影响。
+QiuyuRemote 中显示的 Cookie 有效期只是根据 Cookie 文件估算。实际能否继续使用还会受到退出登录、修改密码、账号安全检查、服务器 IP/地区变化、网站主动失效、限流，以及 ~~yt-dlp~~ 解析器变化等因素影响。
 
-如果 YouTube 或其它网站提示需要登录或 Cookie，请在 Cookie 管理中导入或更新对应站点 Cookie。YouTube 还可能需要更新 yt-dlp、安装 ffmpeg，以及配置 Deno 等 JavaScript 运行时来处理当前的签名挑战。
+如果 YouTube 或其它网站提示需要登录或 Cookie，请在 Cookie 管理中导入或更新对应站点 Cookie。YouTube 还可能需要更新 ~~yt-dlp~~、安装 ffmpeg，以及配置 Deno 等 JavaScript 运行时来处理当前的签名挑战。
 
 ## 同步和隐私
 
@@ -243,6 +245,6 @@ QiuyuRemote 中显示的 Cookie 有效期只是根据 Cookie 文件估算。实�
 - qBittorrent 使用 Web UI 根地址，不要手动追加 `/api/v2`。
 - Transmission 使用 RPC 地址，通常是 `/transmission/rpc`。
 - aria2 使用 JSON-RPC 地址，如果配置了 secret，需要填写 token。
-- yt-dlp 连接 PushAgent 的 `v1/ytdlp` 端点；如果 Agent 配置了 `apiKey`，App 里也要填写同一个 API Key。
+- ~~yt-dlp~~ 连接 PushAgent 的 `v1/ytdlp` 端点；如果 Agent 配置了 `apiKey`，App 里也要填写同一个 API Key。
 - 远程通知收不到时，检查系统通知权限、勿扰/专注模式、Push Relay 注册状态、Agent 配对状态，以及 PushAgent 是否正在运行。
 - WebDAV 不能播放或找不到文件时，确认 WebDAV 路径是否对应真实下载目录，并刷新 WebDAV 服务。

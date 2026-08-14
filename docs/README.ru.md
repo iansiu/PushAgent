@@ -2,6 +2,8 @@
 
 Языки: [English](../README.md) | [简体中文](README.zh-Hans.md) | [繁體中文](README.zh-Hant.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | Русский
 
+> **Статус production-сборки:** В production-сборку QiuyuRemote для App Store не входят интеграция ~~yt-dlp~~ и управление Cookie. Разделы про ~~yt-dlp~~ ниже сохранены для внутренних сборок и существующих развёртываний PushAgent.
+
 Публичный репозиторий: <https://github.com/iansiu/PushAgent>
 
 Руководство по приложению: [QiuyuRemote App Guide](APP_GUIDE.ru.md)
@@ -12,7 +14,7 @@
 запросов функций и вопросов по PushAgent создайте issue здесь:
 <https://github.com/iansiu/PushAgent/issues>
 
-Push Agent запускается на вашем сервере загрузок и отслеживает задачи qBittorrent, Transmission, aria2 и, при необходимости, yt-dlp. Он отправляет события о завершении загрузки, ошибке, долгом отсутствии данных, отключении и восстановлении сервера в Qiuyu's Push Relay, после чего QiuyuRemote показывает системные уведомления.
+Push Agent запускается на вашем сервере загрузок и отслеживает задачи qBittorrent, Transmission, aria2 и, при необходимости, ~~yt-dlp~~. Он отправляет события о завершении загрузки, ошибке, долгом отсутствии данных, отключении и восстановлении сервера в Qiuyu's Push Relay, после чего QiuyuRemote показывает системные уведомления.
 
 Push Agent легкий:
 
@@ -44,11 +46,11 @@ Push Agent — это необязательный серверный компо
 | Уведомления о завершении или ошибке удаленной загрузки | Да |
 | Уведомления о задаче без данных длительное время | Да |
 | Уведомления об отключении или восстановлении сервера загрузок | Да |
-| Загрузки yt-dlp | Да |
-| Управление Cookie для yt-dlp | Да |
-| Отправка URL из YouTube, TikTok и других приложений в QiuyuRemote для удаленной загрузки | Да, нужен настроенный yt-dlp Push Agent |
+| <del>Загрузки yt-dlp</del> | <del>Да</del> |
+| <del>Управление Cookie для yt-dlp</del> | <del>Да</del> |
+| Отправка URL из YouTube, TikTok и других приложений в QiuyuRemote для удаленной загрузки | Да, нужен настроенный ~~yt-dlp~~ Push Agent |
 
-Иными словами, Push Agent не является обязательным условием для базового использования QiuyuRemote. Он нужен для серверного мониторинга, push-уведомлений и yt-dlp.
+Иными словами, Push Agent не является обязательным условием для базового использования QiuyuRemote. Он нужен для серверного мониторинга, push-уведомлений и ~~yt-dlp~~.
 
 ## Быстрый старт
 
@@ -87,6 +89,7 @@ cp config.example.json config.json
   },
   "monitor": {
     "pollIntervalSeconds": 30,
+    "serviceStatusNoticeEnabled": true,
     "inactiveDownloadNoticeEnabled": true,
     "inactiveDownloadNoticeSeconds": 1800
   },
@@ -101,7 +104,7 @@ cp config.example.json config.json
 }
 ```
 
-Добавляйте в `servers` только те службы загрузки, которыми вы действительно пользуетесь. В `config.example.json` есть шаблоны qBittorrent, Transmission, aria2 и yt-dlp, но по умолчанию они имеют `"enabled": false`.
+Добавляйте в `servers` только те службы загрузки, которыми вы действительно пользуетесь. В `config.example.json` есть шаблоны qBittorrent, Transmission, aria2 и ~~yt-dlp~~, но по умолчанию они имеют `"enabled": false`.
 
 ### 3. Настройка служб загрузки
 
@@ -148,7 +151,7 @@ aria2:
 
 Если aria2 использует HTTPS с самоподписанным сертификатом, можно установить `allowInvalidTLS` в `true`. Обычно лучше оставить `liveEvents` включенным, чтобы Agent не пропускал очень быстро завершившиеся задачи aria2.
 
-yt-dlp:
+~~yt-dlp~~:
 
 ```json
 {
@@ -175,23 +178,23 @@ yt-dlp:
 }
 ```
 
-Сначала установите yt-dlp на сервере. Если вы оставляете формат `bv*+ba/b`, также рекомендуется установить ffmpeg, потому что некоторые сайты скачивают видео и аудио отдельными потоками, а затем объединяют их. В диагностике отображаются `ytDlpVersion`, `ffmpegAvailable` и `ffmpegVersion`.
+Сначала установите ~~yt-dlp~~ на сервере. Если вы оставляете формат `bv*+ba/b`, также рекомендуется установить ffmpeg, потому что некоторые сайты скачивают видео и аудио отдельными потоками, а затем объединяют их. В диагностике отображаются `ytDlpVersion`, `ffmpegAvailable` и `ffmpegVersion`.
 
-Некоторые сайты, особенно YouTube, могут требовать login cookies. Это не ошибка Push Agent; это требование yt-dlp. Экспортируйте `cookies.txt` в формате Netscape из браузера, где вы уже вошли в аккаунт, затем импортируйте его в Cookie Management QiuyuRemote или загрузите файл на сервер и укажите абсолютный путь в `cookiesPath`.
+Некоторые сайты, особенно YouTube, могут требовать login cookies. Это не ошибка Push Agent; это требование ~~yt-dlp~~. Экспортируйте `cookies.txt` в формате Netscape из браузера, где вы уже вошли в аккаунт, затем импортируйте его в Cookie Management QiuyuRemote или загрузите файл на сервер и укажите абсолютный путь в `cookiesPath`.
 
 ```json
 "cookiesPath": "/root/PushAgent/cookies/all-cookies.txt"
 ```
 
-Один файл cookies может содержать cookies для нескольких доменов. yt-dlp использует только cookies, подходящие к URL. Не публикуйте этот файл.
+Один файл cookies может содержать cookies для нескольких доменов. ~~yt-dlp~~ использует только cookies, подходящие к URL. Не публикуйте этот файл.
 
 Порядок выбора Cookie: `cookiesPath`, явно заданный для задачи; Cookie соответствующего сайта, импортированный в QiuyuRemote и сохраненный в `cookiesDir`; fallback `cookiesPath` из `config.json`; без Cookie. Поэтому сайтный Cookie, импортированный в приложении, имеет приоритет над файлом из конфига. Если импортированный файл пустой, истекший или некорректный, задача завершится Cookie-ошибкой и не будет тихо переключаться на конфиг. Чтобы снова использовать fallback `cookiesPath`, обновите или удалите импортированный Cookie этого сайта в приложении.
 
 В настольных браузерах расширение `Get cookies.txt LOCALLY` может экспортировать стандартный файл Cookie в формате Netscape. На iOS можно использовать Microsoft Edge с расширением `Cookie-Editor`: задайте Export Format `Netscape`, скопируйте Cookie текущего сайта и запустите Shortcut `Create a new cookie file`: `https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`. Shortcut создаст Cookie-файл в `On My iPhone/Downloads`, после чего его можно напрямую импортировать в QiuyuRemote.
 
-Срок действия Cookie, показанный в QiuyuRemote, является оценкой. Реальная доступность может измениться из-за выхода из аккаунта, смены пароля, проверок безопасности аккаунта, изменения IP/региона сервера, принудительной инвалидизации сайтом, rate limit или изменений extractor в yt-dlp.
+Срок действия Cookie, показанный в QiuyuRemote, является оценкой. Реальная доступность может измениться из-за выхода из аккаунта, смены пароля, проверок безопасности аккаунта, изменения IP/региона сервера, принудительной инвалидизации сайтом, rate limit или изменений extractor в ~~yt-dlp~~.
 
-YouTube также может требовать внешнюю JavaScript-поддержку yt-dlp для решения signature и `n` challenge. Установите Deno и сделайте его доступным и для текущего shell, и для systemd:
+YouTube также может требовать внешнюю JavaScript-поддержку ~~yt-dlp~~ для решения signature и `n` challenge. Установите Deno и сделайте его доступным и для текущего shell, и для systemd:
 
 ```bash
 curl -fsSL https://deno.land/install.sh | sh
@@ -213,9 +216,9 @@ yt-dlp -F \
   "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
-В норме вывод содержит `[jsc:deno] Solving JS challenges using deno` и реальные audio/video formats, например 720p или 1080p. Если видны только storyboard images, проверьте yt-dlp, Deno и EJS-компоненты. `HTTP Error 429: Too Many Requests` означает временный rate limit для IP сервера; подождите или настройте `proxy`.
+В норме вывод содержит `[jsc:deno] Solving JS challenges using deno` и реальные audio/video formats, например 720p или 1080p. Если видны только storyboard images, проверьте ~~yt-dlp~~, Deno и EJS-компоненты. `HTTP Error 429: Too Many Requests` означает временный rate limit для IP сервера; подождите или настройте `proxy`.
 
-После успешного теста добавьте те же параметры в конфиг сервиса yt-dlp:
+После успешного теста добавьте те же параметры в конфиг сервиса ~~yt-dlp~~:
 
 ```json
 {
@@ -331,7 +334,7 @@ curl -X POST http://127.0.0.1:8765/v1/agent/pair \
 
 Если Relay identity, сохраненная в `data/relay-identity.json`, больше не существует на Push Relay, ручное pairing из Web Console один раз повторит запрос без старой identity и сохранит новый Agent ID, возвращенный Relay. В обычной ситуации Agent по-прежнему не заменяет сохраненную действующую identity другим Agent ID молча.
 
-Если в одном Agent включено несколько yt-dlp сервисов, старые запросы без query продолжают использовать первый включенный yt-dlp. Для изоляции нескольких yt-dlp укажите в QiuyuRemote путь `v1/ytdlp?server=<id-or-name>`. Selector может быть `id`, `name`, `storageKey`, endpoint или base URL сервиса из Web Console Agent.
+Если в одном Agent включено несколько ~~yt-dlp~~ сервисов, старые запросы без query продолжают использовать первый включенный ~~yt-dlp~~. Для изоляции нескольких ~~yt-dlp~~ укажите в QiuyuRemote путь `v1/ytdlp?server=<id-or-name>`. Selector может быть `id`, `name`, `storageKey`, endpoint или base URL сервиса из Web Console Agent.
 
 ## API Key
 
@@ -426,6 +429,7 @@ Agent отправляет события для:
 | `dataDir` | Каталог для `relay-identity.json`, состояния задач и состояния серверов. |
 | `relay.urls` | Адреса Push Relay. Пример уже содержит основной и резервный Relay Qiuyu. |
 | `monitor.pollIntervalSeconds` | Интервал опроса служб загрузки. По умолчанию `30`, минимальный runtime-интервал `10`. |
+| `monitor.serviceStatusNoticeEnabled` | Отправлять ли уведомления, когда отслеживаемая служба загрузки уходит offline или снова становится online. По умолчанию `true`; `false` отключает только уведомления о состоянии службы, сохраняя уведомления о задачах. |
 | `monitor.inactiveDownloadNoticeEnabled` | Отправлять ли уведомление, когда активная незавершенная задача долго не получает данные. По умолчанию `true`. |
 | `monitor.inactiveDownloadNoticeSeconds` | Порог отсутствия данных в секундах. По умолчанию `1800`, то есть 30 минут. |
 | `updateCheck.enabled` | Проверять ли новую публичную версию PushAgent на Web странице Agent. По умолчанию `true`. |
@@ -433,7 +437,7 @@ Agent отправляет события для:
 | `updateCheck.url` | URL метаданных обновления. По умолчанию читает version из публичного `package.json` на GitHub. |
 | `updateCheck.intervalSeconds` | Минимальный интервал кеширования проверки обновлений. По умолчанию `3600`. |
 | `updateCheck.timeoutSeconds` | Таймаут сети для проверки обновлений. По умолчанию `4`. |
-| `servers` | Конфиги подключений qBittorrent, Transmission, aria2 и опционально yt-dlp. |
+| `servers` | Конфиги подключений qBittorrent, Transmission, aria2 и опционально ~~yt-dlp~~. |
 | `servers[].name` | Отображаемое имя. Можно менять в любое время. |
 | `servers[].type` | Тип службы загрузки. Поддерживаются `qbit`, `transmission`, `aria2`, `ytdlp`. |
 | `servers[].enabled` | Отслеживать ли эту службу. Если отсутствует или `true`, служба включена; `false` оставляет шаблон без мониторинга. |
@@ -442,23 +446,23 @@ Agent отправляет события для:
 | `servers[].allowInvalidTLS` | Разрешить недействительные TLS-сертификаты для локального сервера, в основном для локального aria2 HTTPS RPC. |
 | `servers[].liveEvents` | Только aria2. Включает WebSocket-события завершения. По умолчанию включено. |
 | `servers[].stoppedTaskLimit` | Только aria2. Количество остановленных задач, запрашиваемых при опросе. |
-| `servers[].binaryPath` | Только yt-dlp. Имя команды или абсолютный путь, по умолчанию `yt-dlp`. |
-| `servers[].ffmpegPath` | Только yt-dlp. Имя команды ffmpeg или абсолютный путь, по умолчанию `ffmpeg`. |
-| `servers[].downloadDir` | Только yt-dlp. Каталог загрузки по умолчанию. Каталог, указанный для задачи в QiuyuRemote, имеет приоритет. |
-| `servers[].storageKey` | Только yt-dlp. Стабильный key для хранения истории задач и cookies сайтов. Не меняйте его при обновлении или смене каталога загрузки. |
-| `servers[].statePath` | Только yt-dlp. Путь к JSON-файлу истории задач. По умолчанию `data/yt-dlp-tasks/<storageKey>.json`. |
-| `servers[].historyLimit` | Только yt-dlp. Количество записей истории задач, сохраняемых Push Agent. По умолчанию `1000`. |
-| `servers[].format` | Только yt-dlp. Формат selector по умолчанию. |
-| `servers[].outputTemplate` | Только yt-dlp. Шаблон имени выходного файла. По умолчанию используется `%(title).80B.%(ext)s`, чтобы заголовки были короче. |
-| `servers[].cookiesPath` | Только yt-dlp. Fallback-файл Cookie в формате Netscape, используемый когда нет Cookie, заданного задачей или импортированного из приложения для сайта. |
-| `servers[].cookiesDir` | Только yt-dlp. Каталог, где Cookie Management QiuyuRemote хранит сайтные Cookie. По умолчанию `data/ytdlp-cookies/<storageKey>`. |
-| `servers[].proxy` | Только yt-dlp. Proxy, передаваемый в yt-dlp. |
-| `servers[].requireCookiesForYoutube` | Только yt-dlp. Если `true`, YouTube URL заранее возвращает понятную ошибку, когда нет Cookie в задаче, приложении или fallback-конфиге. |
-| `servers[].cleanHashtags` | Только yt-dlp. По умолчанию `true`; удаляет trailing hashtag-текст из заголовков перед созданием имени файла. |
-| `servers[].maxConcurrent` | Только yt-dlp. Максимальное число активных процессов yt-dlp. По умолчанию `10`. |
-| `servers[].noPlaylist` | Только yt-dlp. По умолчанию `true`; не дает одному URL раскрыться в загрузку всего плейлиста. |
-| `servers[].restrictFilenames` | Только yt-dlp. Использует более безопасные символы в именах файлов. |
-| `servers[].extraArgs` | Только yt-dlp. Массив дополнительных аргументов для продвинутой настройки. Agent передает их как массив аргументов spawn, а не shell-строку. Аргументы, управляемые QiuyuRemote, например `--output`, `--format`, `--cookies`, `--proxy`, `--paths`, здесь игнорируются для предсказуемого поведения. |
+| `servers[].binaryPath` | Только ~~yt-dlp~~. Имя команды или абсолютный путь, по умолчанию `yt-dlp`. |
+| `servers[].ffmpegPath` | Только ~~yt-dlp~~. Имя команды ffmpeg или абсолютный путь, по умолчанию `ffmpeg`. |
+| `servers[].downloadDir` | Только ~~yt-dlp~~. Каталог загрузки по умолчанию. Каталог, указанный для задачи в QiuyuRemote, имеет приоритет. |
+| `servers[].storageKey` | Только ~~yt-dlp~~. Стабильный key для хранения истории задач и cookies сайтов. Не меняйте его при обновлении или смене каталога загрузки. |
+| `servers[].statePath` | Только ~~yt-dlp~~. Путь к JSON-файлу истории задач. По умолчанию `data/yt-dlp-tasks/<storageKey>.json`. |
+| `servers[].historyLimit` | Только ~~yt-dlp~~. Количество записей истории задач, сохраняемых Push Agent. По умолчанию `1000`. |
+| `servers[].format` | Только ~~yt-dlp~~. Формат selector по умолчанию. |
+| `servers[].outputTemplate` | Только ~~yt-dlp~~. Шаблон имени выходного файла. По умолчанию используется `%(title).80B.%(ext)s`, чтобы заголовки были короче. |
+| `servers[].cookiesPath` | Только ~~yt-dlp~~. Fallback-файл Cookie в формате Netscape, используемый когда нет Cookie, заданного задачей или импортированного из приложения для сайта. |
+| `servers[].cookiesDir` | Только ~~yt-dlp~~. Каталог, где Cookie Management QiuyuRemote хранит сайтные Cookie. По умолчанию `data/ytdlp-cookies/<storageKey>`. |
+| `servers[].proxy` | Только ~~yt-dlp~~. Proxy, передаваемый в ~~yt-dlp~~. |
+| `servers[].requireCookiesForYoutube` | Только ~~yt-dlp~~. Если `true`, YouTube URL заранее возвращает понятную ошибку, когда нет Cookie в задаче, приложении или fallback-конфиге. |
+| `servers[].cleanHashtags` | Только ~~yt-dlp~~. По умолчанию `true`; удаляет trailing hashtag-текст из заголовков перед созданием имени файла. |
+| `servers[].maxConcurrent` | Только ~~yt-dlp~~. Максимальное число активных процессов ~~yt-dlp~~. По умолчанию `10`. |
+| `servers[].noPlaylist` | Только ~~yt-dlp~~. По умолчанию `true`; не дает одному URL раскрыться в загрузку всего плейлиста. |
+| `servers[].restrictFilenames` | Только ~~yt-dlp~~. Использует более безопасные символы в именах файлов. |
+| `servers[].extraArgs` | Только ~~yt-dlp~~. Массив дополнительных аргументов для продвинутой настройки. Agent передает их как массив аргументов spawn, а не shell-строку. Аргументы, управляемые QiuyuRemote, например `--output`, `--format`, `--cookies`, `--proxy`, `--paths`, здесь игнорируются для предсказуемого поведения. |
 
 ## Частые команды
 

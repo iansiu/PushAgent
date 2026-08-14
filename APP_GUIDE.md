@@ -2,6 +2,8 @@
 
 Languages: English | [简体中文](docs/APP_GUIDE.zh-Hans.md) | [繁體中文](docs/APP_GUIDE.zh-Hant.md) | [日本語](docs/APP_GUIDE.ja.md) | [한국어](docs/APP_GUIDE.ko.md) | [Русский](docs/APP_GUIDE.ru.md)
 
+> **Production build status:** The App Store production build does not include the ~~yt-dlp~~ integration or Cookie Management. The retained ~~yt-dlp~~ sections are for internal builds and existing PushAgent deployments.
+
 QiuyuRemote can work as a direct download manager, or as a download manager plus a Push Agent companion.
 
 ## Basic Mode And Agent Mode
@@ -20,9 +22,9 @@ Push Agent is only needed for server-side background features:
 | Remote download completed or failed notifications | Yes |
 | Long-running no-data task alerts | Yes |
 | Download server offline or online notifications | Yes |
-| yt-dlp downloads | Yes |
-| yt-dlp cookie management | Yes |
-| Share a media URL from another app to QiuyuRemote for remote yt-dlp download | Yes |
+| <del>yt-dlp downloads</del> | <del>Yes</del> |
+| <del>yt-dlp cookie management</del> | <del>Yes</del> |
+| <del>Share a media URL from another app to QiuyuRemote for remote yt-dlp download</del> | <del>Yes</del> |
 
 ## Free Version And Pro
 
@@ -30,15 +32,15 @@ QiuyuRemote can be downloaded and used for free. The free version is for basic r
 
 Pro is for users who want more complete remote-management features. After upgrading to Pro, you can use:
 
-- yt-dlp downloads
-- yt-dlp Cookie Management for signed-in media sites
+- ~~yt-dlp~~ downloads
+- ~~yt-dlp~~ Cookie Management for signed-in media sites
 - remote download notifications through Push Agent
 - iCloud sync for server profiles and app settings
 - Offline Library and offline task management
 - WebDAV playback and file access
 - Download Completion Notifications
 - advanced server settings
-- yt-dlp servers and mixed aria2/qBittorrent/Transmission setups, instead of using only one direct-download service type
+- ~~yt-dlp~~ servers and mixed aria2/qBittorrent/Transmission setups, instead of using only one direct-download service type
 
 Pro status and Push Agent pairing are separate. Buying Pro does not pair an Agent by itself, and pairing an Agent does not prove that a Pro purchase exists.
 
@@ -61,7 +63,7 @@ Supported server types:
 - Transmission: connects to the Transmission RPC endpoint.
 - aria2: connects to the aria2 JSON-RPC endpoint.
 - qBittorrent: connects to the qBittorrent Web UI API.
-- yt-dlp: connects to PushAgent's `v1/ytdlp` API. yt-dlp runs on the server, not on the phone or Mac.
+- ~~yt-dlp~~: connects to PushAgent's `v1/ytdlp` API. ~~yt-dlp~~ runs on the server, not on the phone or Mac.
 
 ## Adding Downloads
 
@@ -69,9 +71,9 @@ Use the add button on the home screen to add a task.
 
 - qBittorrent and Transmission are for magnet links and `.torrent` files.
 - aria2 can handle normal HTTP/HTTPS file URLs, metalinks, magnets, and torrents depending on your aria2 configuration.
-- yt-dlp accepts HTTP/HTTPS media page URLs, such as YouTube, TikTok, Bilibili, Instagram, X, Threads, and other sites supported by yt-dlp.
+- ~~yt-dlp~~ accepts HTTP/HTTPS media page URLs, such as YouTube, TikTok, Bilibili, Instagram, X, Threads, and other sites supported by ~~yt-dlp~~.
 
-On iPhone and iPad, you can share a URL from another app to QiuyuRemote. For yt-dlp sharing, add and connect a yt-dlp PushAgent server first. iOS may open QiuyuRemote to finish submitting the shared link.
+On iPhone and iPad, you can share a URL from another app to QiuyuRemote. For ~~yt-dlp~~ sharing, add and connect a ~~yt-dlp~~ PushAgent server first. iOS may open QiuyuRemote to finish submitting the shared link.
 
 ## URL Scheme And Shortcuts
 
@@ -93,7 +95,7 @@ Compatibility rules still apply:
 
 - qBittorrent and Transmission accept magnet links or `.torrent` URLs.
 - aria2 accepts normal file URLs, magnets, and torrents, depending on aria2 configuration.
-- yt-dlp accepts HTTP/HTTPS media page URLs and requires a configured yt-dlp PushAgent server.
+- ~~yt-dlp~~ accepts HTTP/HTTPS media page URLs and requires a configured ~~yt-dlp~~ PushAgent server.
 
 For Shortcuts, QiuyuRemote also supports `x-callback-url`:
 
@@ -116,7 +118,7 @@ The default task order is optimized for everyday use:
 
 On iPad and Mac, table columns can be resized by dragging the boundary in the header. The Name column supports a much wider width for long task names.
 
-yt-dlp tasks hide torrent-only fields such as upload speed, uploaded size, seeds, leechers, and share ratio.
+~~yt-dlp~~ tasks hide torrent-only fields such as upload speed, uploaded size, seeds, leechers, and share ratio.
 
 ## Task Status Mapping
 
@@ -144,13 +146,13 @@ QiuyuRemote shows a normalized app status in the task list. The original service
 | aria2 | `error` | Error |
 | aria2 | `complete` | Complete; automatic-rule notices can show it as Stopped |
 | aria2 | `removed` | Removed |
-| yt-dlp | `downloading`, `running` | Downloading |
-| yt-dlp | `postprocessing`, `processing`, `merge`, `fixup`, `metadata`, `extract`, `remux`, `convert` | Processing |
-| yt-dlp | `moving` | Moving |
-| yt-dlp | `completed` | Complete |
-| yt-dlp | `failed`, `error`, `lost` | Error |
-| yt-dlp | `paused` | Paused |
-| yt-dlp | `queued` | Waiting |
+| <del>yt-dlp</del> | <del>`downloading`, `running`</del> | <del>Downloading</del> |
+| <del>yt-dlp</del> | <del>`postprocessing`, `processing`, `merge`, `fixup`, `metadata`, `extract`, `remux`, `convert`</del> | <del>Processing</del> |
+| <del>yt-dlp</del> | <del>`moving`</del> | <del>Moving</del> |
+| <del>yt-dlp</del> | <del>`completed`</del> | <del>Complete</del> |
+| <del>yt-dlp</del> | <del>`failed`, `error`, `lost`</del> | <del>Error</del> |
+| <del>yt-dlp</del> | <del>`paused`</del> | <del>Paused</del> |
+| <del>yt-dlp</del> | <del>`queued`</del> | <del>Waiting</del> |
 
 Other unknown values are shown as the raw service status, or as Unknown if the service returns an empty status.
 
@@ -204,7 +206,7 @@ System notification permission is controlled by iOS, iPadOS, or macOS.
 
 - Local offline download notifications are sent by QiuyuRemote itself.
 - Remote qBittorrent, Transmission, and aria2 task notifications require a paired Push Agent running on the download server.
-- yt-dlp task notifications also come from Push Agent.
+- ~~yt-dlp~~ task notifications also come from Push Agent.
 - Push Relay test notifications only verify that this device can receive APNs through Push Relay. They do not prove that a server Push Agent is paired or running.
 
 To receive remote download notifications:
@@ -215,21 +217,21 @@ To receive remote download notifications:
 4. Enter the pairing code and pair the Agent.
 5. Keep PushAgent running on the server.
 
-## yt-dlp And Cookies
+## <del>yt-dlp And Cookies</del>
 
-yt-dlp downloads run on PushAgent. QiuyuRemote submits a URL and shows the task state returned by the Agent.
+~~yt-dlp~~ downloads run on PushAgent. QiuyuRemote submits a URL and shows the task state returned by the Agent.
 
-Cookie Management is per yt-dlp PushAgent server. Cookies are uploaded directly to the selected PushAgent and stored on that server. They are not sent to Push Relay, not synced through iCloud, and not printed in logs.
+Cookie Management is per ~~yt-dlp~~ PushAgent server. Cookies are uploaded directly to the selected PushAgent and stored on that server. They are not sent to Push Relay, not synced through iCloud, and not printed in logs.
 
 Use Netscape-format `cookies.txt` files exported from a browser. Cookies are website login credentials, so do not share them.
 
 On desktop browsers, the `Get cookies.txt LOCALLY` extension can export a standard Netscape-format cookie file when supported by the browser. On iOS, you can use Microsoft Edge with the `Cookie-Editor` extension, set Export Format to `Netscape`, copy the current site's cookies to the clipboard, then run the `Create a new cookie file` Shortcut: `https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`. The Shortcut creates a cookie file in `On My iPhone/Downloads`, which can be imported directly in QiuyuRemote.
 
-For each yt-dlp task, PushAgent uses cookies in this order: a task-specific cookies path, the matching site cookie imported in QiuyuRemote, then the fallback `cookiesPath` from PushAgent `config.json`. An imported site cookie in the app has higher priority than the config file.
+For each ~~yt-dlp~~ task, PushAgent uses cookies in this order: a task-specific cookies path, the matching site cookie imported in QiuyuRemote, then the fallback `cookiesPath` from PushAgent `config.json`. An imported site cookie in the app has higher priority than the config file.
 
-The expiration shown in QiuyuRemote is only an estimate based on the cookie file. Cookies can stop working earlier because of logout, password changes, account security checks, server IP/location changes, site-side invalidation, rate limits, or yt-dlp extractor changes.
+The expiration shown in QiuyuRemote is only an estimate based on the cookie file. Cookies can stop working earlier because of logout, password changes, account security checks, server IP/location changes, site-side invalidation, rate limits, or ~~yt-dlp~~ extractor changes.
 
-If YouTube or another site says login or cookies are required, import or update the matching site cookie in Cookie Management. YouTube may also require yt-dlp updates, ffmpeg, and a JavaScript runtime such as Deno for current signature challenge handling.
+If YouTube or another site says login or cookies are required, import or update the matching site cookie in Cookie Management. YouTube may also require ~~yt-dlp~~ updates, ffmpeg, and a JavaScript runtime such as Deno for current signature challenge handling.
 
 ## Sync And Privacy
 
@@ -243,6 +245,6 @@ If privacy protection is enabled, Face ID, Touch ID, or the device password is h
 - For qBittorrent, use the Web UI base URL. Do not manually append `/api/v2`.
 - For Transmission, use the RPC endpoint, usually `/transmission/rpc`.
 - For aria2, use the JSON-RPC endpoint and token if configured.
-- For yt-dlp, connect to PushAgent's `v1/ytdlp` endpoint and enter the Agent `apiKey` if one is set.
+- For ~~yt-dlp~~, connect to PushAgent's `v1/ytdlp` endpoint and enter the Agent `apiKey` if one is set.
 - If remote notifications do not arrive, check notification permission, Focus mode, Push Relay registration, Agent pairing, and whether PushAgent is running.
 - If WebDAV cannot play or find a file, confirm the WebDAV path maps to the real download directory and refresh the WebDAV provider.

@@ -2,6 +2,8 @@
 
 语言：[English](../README.md) | 简体中文 | [繁體中文](README.zh-Hant.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Русский](README.ru.md)
 
+> **生产版状态：** QiuyuRemote 的 App Store 正式版不包含 ~~yt-dlp~~ 集成或 Cookie 管理。下面保留的 ~~yt-dlp~~ 章节用于内部构建和已有 PushAgent 部署。
+
 公开仓库：<https://github.com/iansiu/PushAgent>
 
 App 使用指南：[QiuyuRemote App 使用指南](APP_GUIDE.zh-Hans.md)
@@ -11,7 +13,7 @@ App 使用指南：[QiuyuRemote App 使用指南](APP_GUIDE.zh-Hans.md)
 QiuyuRemote App 支持、反馈、问题报告、功能建议以及 PushAgent 相关问题，都可以在这里提交 Issue：
 <https://github.com/iansiu/PushAgent/issues>
 
-Push Agent 运行在你的下载服务器上，用来监控 qBittorrent、Transmission、aria2 和可选的 yt-dlp 任务，并把下载完成、下载失败、任务长时间无数据、服务器离线/恢复等事件发送到 Qiuyu's Push Relay。QiuyuRemote 收到这些事件后会显示系统通知。
+Push Agent 运行在你的下载服务器上，用来监控 qBittorrent、Transmission、aria2 和可选的 ~~yt-dlp~~ 任务，并把下载完成、下载失败、任务长时间无数据、服务器离线/恢复等事件发送到 Qiuyu's Push Relay。QiuyuRemote 收到这些事件后会显示系统通知。
 
 Push Agent 很轻量：
 
@@ -43,11 +45,11 @@ Push Agent 是可选的服务器端增强组件，主要用于 App 自己不能�
 | 远程下载完成或失败通知 | 需要 |
 | 长时间无数据任务提醒 | 需要 |
 | 下载服务器离线或恢复通知 | 需要 |
-| yt-dlp 下载 | 需要 |
-| yt-dlp Cookie 管理 | 需要 |
-| 从 YouTube、TikTok 等 App 分享链接到 QiuyuRemote 后远程下载 | 需要，需要配置 yt-dlp Push Agent |
+| <del>yt-dlp 下载</del> | <del>需要</del> |
+| <del>yt-dlp Cookie 管理</del> | <del>需要</del> |
+| 从 YouTube、TikTok 等 App 分享链接到 QiuyuRemote 后远程下载 | 需要，需要配置 ~~yt-dlp~~ Push Agent |
 
-简单说：Push Agent 不是使用 QiuyuRemote 的入门门槛。它主要负责服务器后台监控、推送通知和 yt-dlp。
+简单说：Push Agent 不是使用 QiuyuRemote 的入门门槛。它主要负责服务器后台监控、推送通知和 ~~yt-dlp~~。
 
 ## 快速开始
 
@@ -86,6 +88,7 @@ cp config.example.json config.json
   },
   "monitor": {
     "pollIntervalSeconds": 30,
+    "serviceStatusNoticeEnabled": true,
     "inactiveDownloadNoticeEnabled": true,
     "inactiveDownloadNoticeSeconds": 1800
   },
@@ -100,7 +103,7 @@ cp config.example.json config.json
 }
 ```
 
-只把你真正使用的下载服务加入 `servers`。`config.example.json` 里已经提供 qBittorrent、Transmission、aria2、yt-dlp 模板，并且默认都是 `"enabled": false`。没有运行的服务保持禁用即可。
+只把你真正使用的下载服务加入 `servers`。`config.example.json` 里已经提供 qBittorrent、Transmission、aria2、~~yt-dlp~~ 模板，并且默认都是 `"enabled": false`。没有运行的服务保持禁用即可。
 
 ### 3. 配置下载服务
 
@@ -147,7 +150,7 @@ aria2 示例：
 
 如果 aria2 使用 HTTPS 且证书是自签名或主机名不匹配，可以把该服务的 `allowInvalidTLS` 改成 `true`。建议保持 `liveEvents` 为 `true`，这样 aria2 很快完成的任务也更容易被实时捕获。
 
-yt-dlp 示例：
+~~yt-dlp~~ 示例：
 
 ```json
 {
@@ -174,23 +177,23 @@ yt-dlp 示例：
 }
 ```
 
-先在服务器安装 yt-dlp。如果保留默认 `format` 为 `bv*+ba/b`，也建议安装 ffmpeg，因为很多网站会把视频和音频分开下载后再合并。诊断接口会显示 `ytDlpVersion`、`ffmpegAvailable`、`ffmpegVersion`。
+先在服务器安装 ~~yt-dlp~~。如果保留默认 `format` 为 `bv*+ba/b`，也建议安装 ffmpeg，因为很多网站会把视频和音频分开下载后再合并。诊断接口会显示 `ytDlpVersion`、`ffmpegAvailable`、`ffmpegVersion`。
 
-一些网站，尤其是 YouTube，可能需要登录 Cookie。这不是 Push Agent 故障，而是 yt-dlp 需要认证。你可以从已登录的浏览器导出 Netscape 格式的 `cookies.txt`，然后在 QiuyuRemote 的 Cookie 管理中导入，或把文件上传到服务器并将 `cookiesPath` 设置为服务器上的绝对路径，例如：
+一些网站，尤其是 YouTube，可能需要登录 Cookie。这不是 Push Agent 故障，而是 ~~yt-dlp~~ 需要认证。你可以从已登录的浏览器导出 Netscape 格式的 `cookies.txt`，然后在 QiuyuRemote 的 Cookie 管理中导入，或把文件上传到服务器并将 `cookiesPath` 设置为服务器上的绝对路径，例如：
 
 ```json
 "cookiesPath": "/root/PushAgent/cookies/all-cookies.txt"
 ```
 
-一个 Netscape 格式 Cookie 文件可以包含多个域名的 Cookie，yt-dlp 会按 URL 自动使用对应域名的 Cookie。Cookie 文件请妥善保管，不要公开。
+一个 Netscape 格式 Cookie 文件可以包含多个域名的 Cookie，~~yt-dlp~~ 会按 URL 自动使用对应域名的 Cookie。Cookie 文件请妥善保管，不要公开。
 
 Cookie 使用优先级为：任务单独指定的 `cookiesPath`、QiuyuRemote 中导入并保存在 `cookiesDir` 下的对应站点 Cookie、`config.json` 里的备用 `cookiesPath`、不使用 Cookie。也就是说，App 里导入的站点 Cookie 优先级高于配置文件。如果导入的文件为空、过期或无效，任务会报 Cookie 错误，而不会悄悄回退到配置文件；如果想重新使用备用 `cookiesPath`，请更新或删除 App 里导入的站点 Cookie。
 
 桌面浏览器可以使用 `Get cookies.txt LOCALLY` 插件导出标准 Netscape 格式 Cookie 文件。iOS 上可以使用 Microsoft Edge 浏览器配合 `Cookie-Editor` 插件，在插件设置里把 Export Format 设置为 `Netscape`，复制当前网站 Cookie，然后运行 `Create a new cookie file` 捷径：`https://www.icloud.com/shortcuts/21cc1f1ace944cb6aec28c25e833510f`。捷径会在 `On My iPhone/Downloads` 目录生成 Cookie 文件，可直接在 QiuyuRemote 中导入。
 
-QiuyuRemote 中显示的 Cookie 有效期只是估算。实际能否继续使用还会受到退出登录、修改密码、账号安全检查、服务器 IP/地区变化、网站主动失效、限流，以及 yt-dlp 解析器变化等因素影响。
+QiuyuRemote 中显示的 Cookie 有效期只是估算。实际能否继续使用还会受到退出登录、修改密码、账号安全检查、服务器 IP/地区变化、网站主动失效、限流，以及 ~~yt-dlp~~ 解析器变化等因素影响。
 
-YouTube 还可能需要 yt-dlp 的外部 JavaScript 支持，用来解析签名和 `n` challenge。先安装 Deno，并确保当前 shell 和 systemd 都能找到它：
+YouTube 还可能需要 ~~yt-dlp~~ 的外部 JavaScript 支持，用来解析签名和 `n` challenge。先安装 Deno，并确保当前 shell 和 systemd 都能找到它：
 
 ```bash
 curl -fsSL https://deno.land/install.sh | sh
@@ -212,9 +215,9 @@ yt-dlp -F \
   "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
-正常情况下输出里会出现 `[jsc:deno] Solving JS challenges using deno`，并列出 720p、1080p 等真实音视频格式。如果只看到 storyboard 图片格式，说明 yt-dlp、Deno 或 EJS 组件还没有正常工作。如果出现 `HTTP Error 429: Too Many Requests`，表示服务器 IP 被 YouTube 临时限流，需要稍后再试或配置 `proxy`。
+正常情况下输出里会出现 `[jsc:deno] Solving JS challenges using deno`，并列出 720p、1080p 等真实音视频格式。如果只看到 storyboard 图片格式，说明 ~~yt-dlp~~、Deno 或 EJS 组件还没有正常工作。如果出现 `HTTP Error 429: Too Many Requests`，表示服务器 IP 被 YouTube 临时限流，需要稍后再试或配置 `proxy`。
 
-测试成功后，把同样的参数写入 yt-dlp 服务配置：
+测试成功后，把同样的参数写入 ~~yt-dlp~~ 服务配置：
 
 ```json
 {
@@ -332,7 +335,7 @@ curl -X POST http://127.0.0.1:8765/v1/agent/pair \
 
 如果 `data/relay-identity.json` 里保存的 Relay 身份已经不存在于 Push Relay，Agent Web 控制台手动配对时会自动放弃旧身份重试一次，并保存 Relay 返回的新 Agent ID。正常情况下，如果 Relay 返回的 Agent ID 和已保存的有效身份不一致，Agent 仍然会拒绝静默替换。
 
-如果一个 Agent 里配置了多个启用的 yt-dlp 服务，旧请求不带 query 时仍然默认使用第一个启用的 yt-dlp。需要隔离多个 yt-dlp 时，在 QiuyuRemote 的路径里使用 `v1/ytdlp?server=<id或名称>`；这里的 selector 可以是 Agent Web 控制台里看到的服务 `id`、`name`、`storageKey`、endpoint 或 base URL。
+如果一个 Agent 里配置了多个启用的 ~~yt-dlp~~ 服务，旧请求不带 query 时仍然默认使用第一个启用的 ~~yt-dlp~~。需要隔离多个 ~~yt-dlp~~ 时，在 QiuyuRemote 的路径里使用 `v1/ytdlp?server=<id或名称>`；这里的 selector 可以是 Agent Web 控制台里看到的服务 `id`、`name`、`storageKey`、endpoint 或 base URL。
 
 ## API Key
 
@@ -429,6 +432,7 @@ Agent 会发送这些事件：
 | `dataDir` | Agent 存放 `relay-identity.json`、任务状态和服务状态的位置。 |
 | `relay.urls` | Push Relay 地址。示例已经包含 Qiuyu 的主 Relay 和备用 Relay。 |
 | `monitor.pollIntervalSeconds` | 下载服务轮询间隔，默认 `30` 秒，运行时最小值为 `10` 秒。 |
+| `monitor.serviceStatusNoticeEnabled` | 是否在受监控的下载服务离线或恢复在线时通知。默认 `true`；设为 `false` 后仍保留任务通知，但静音服务状态变化。 |
 | `monitor.inactiveDownloadNoticeEnabled` | 是否在运行中的未完成任务长时间无数据时通知。默认 `true`。 |
 | `monitor.inactiveDownloadNoticeSeconds` | 无数据阈值，默认 `1800` 秒，也就是 30 分钟。 |
 | `updateCheck.enabled` | Agent Web 页面是否检查公开 PushAgent 新版本。默认 `true`。 |
@@ -436,7 +440,7 @@ Agent 会发送这些事件：
 | `updateCheck.url` | 更新元数据地址，默认读取 GitHub 上公开 `package.json` 的版本号。 |
 | `updateCheck.intervalSeconds` | 更新检查缓存间隔，默认 `3600` 秒。 |
 | `updateCheck.timeoutSeconds` | 更新检查网络超时，默认 `4` 秒。 |
-| `servers` | qBittorrent、Transmission、aria2、可选 yt-dlp 的连接配置。 |
+| `servers` | qBittorrent、Transmission、aria2、可选 ~~yt-dlp~~ 的连接配置。 |
 | `servers[].name` | 显示名称，可随时修改。 |
 | `servers[].type` | 下载服务类型。支持 `qbit`、`transmission`、`aria2`、`ytdlp`。 |
 | `servers[].enabled` | 是否监控该服务。省略或设为 `true` 表示启用，设为 `false` 可保留模板但不监控。 |
@@ -445,23 +449,23 @@ Agent 会发送这些事件：
 | `servers[].allowInvalidTLS` | 是否允许该本地服务使用无效 TLS 证书，主要用于本地 aria2 HTTPS RPC。 |
 | `servers[].liveEvents` | 仅 aria2。启用 WebSocket 终端事件通知，默认启用。 |
 | `servers[].stoppedTaskLimit` | 仅 aria2。轮询时查询的已停止任务数量。 |
-| `servers[].binaryPath` | 仅 yt-dlp。命令名或绝对路径，默认 `yt-dlp`。 |
-| `servers[].ffmpegPath` | 仅 yt-dlp。ffmpeg 命令名或绝对路径，默认 `ffmpeg`。 |
-| `servers[].downloadDir` | 仅 yt-dlp。默认下载目录。QiuyuRemote 中每个任务填写的目录会覆盖它。 |
-| `servers[].storageKey` | 仅 yt-dlp。任务历史和站点 Cookie 存储使用的稳定 key，升级或修改下载目录时不要随意改变。 |
-| `servers[].statePath` | 仅 yt-dlp。任务历史 JSON 文件路径。默认是 `data/yt-dlp-tasks/<storageKey>.json`。 |
-| `servers[].historyLimit` | 仅 yt-dlp。Push Agent 保留的任务历史数量，默认 `1000`。 |
-| `servers[].format` | 仅 yt-dlp。默认格式选择器。 |
-| `servers[].outputTemplate` | 仅 yt-dlp。输出文件名模板。默认使用 `%(title).80B.%(ext)s` 缩短标题。 |
-| `servers[].cookiesPath` | 仅 yt-dlp。备用 Netscape 格式 Cookie 文件；当任务没有单独指定、App 也没有导入对应站点 Cookie 时使用。 |
-| `servers[].cookiesDir` | 仅 yt-dlp。QiuyuRemote Cookie 管理保存站点 Cookie 的目录，默认 `data/ytdlp-cookies/<storageKey>`。 |
-| `servers[].proxy` | 仅 yt-dlp。传给 yt-dlp 的代理地址。 |
-| `servers[].requireCookiesForYoutube` | 仅 yt-dlp。若为 `true`，YouTube URL 在任务、App 导入和备用配置都没有 Cookie 时会提前返回友好错误。 |
-| `servers[].cleanHashtags` | 仅 yt-dlp。默认 `true`，生成文件名前移除标题末尾 hashtag 文本。 |
-| `servers[].maxConcurrent` | 仅 yt-dlp。最大并发 yt-dlp 进程数，默认 `10`。 |
-| `servers[].noPlaylist` | 仅 yt-dlp。默认 `true`，避免单个 URL 自动展开成播放列表下载。 |
-| `servers[].restrictFilenames` | 仅 yt-dlp。让 yt-dlp 使用更保守的文件名字符。 |
-| `servers[].extraArgs` | 仅 yt-dlp。高级参数数组。Agent 使用 spawn 参数数组传递，不使用 shell 拼接。受 QiuyuRemote 控制的 `--output`、`--format`、`--cookies`、`--proxy`、`--paths` 会在这里被忽略，以保持任务行为可预测。 |
+| `servers[].binaryPath` | 仅 ~~yt-dlp~~。命令名或绝对路径，默认 `yt-dlp`。 |
+| `servers[].ffmpegPath` | 仅 ~~yt-dlp~~。ffmpeg 命令名或绝对路径，默认 `ffmpeg`。 |
+| `servers[].downloadDir` | 仅 ~~yt-dlp~~。默认下载目录。QiuyuRemote 中每个任务填写的目录会覆盖它。 |
+| `servers[].storageKey` | 仅 ~~yt-dlp~~。任务历史和站点 Cookie 存储使用的稳定 key，升级或修改下载目录时不要随意改变。 |
+| `servers[].statePath` | 仅 ~~yt-dlp~~。任务历史 JSON 文件路径。默认是 `data/yt-dlp-tasks/<storageKey>.json`。 |
+| `servers[].historyLimit` | 仅 ~~yt-dlp~~。Push Agent 保留的任务历史数量，默认 `1000`。 |
+| `servers[].format` | 仅 ~~yt-dlp~~。默认格式选择器。 |
+| `servers[].outputTemplate` | 仅 ~~yt-dlp~~。输出文件名模板。默认使用 `%(title).80B.%(ext)s` 缩短标题。 |
+| `servers[].cookiesPath` | 仅 ~~yt-dlp~~。备用 Netscape 格式 Cookie 文件；当任务没有单独指定、App 也没有导入对应站点 Cookie 时使用。 |
+| `servers[].cookiesDir` | 仅 ~~yt-dlp~~。QiuyuRemote Cookie 管理保存站点 Cookie 的目录，默认 `data/ytdlp-cookies/<storageKey>`。 |
+| `servers[].proxy` | 仅 ~~yt-dlp~~。传给 ~~yt-dlp~~ 的代理地址。 |
+| `servers[].requireCookiesForYoutube` | 仅 ~~yt-dlp~~。若为 `true`，YouTube URL 在任务、App 导入和备用配置都没有 Cookie 时会提前返回友好错误。 |
+| `servers[].cleanHashtags` | 仅 ~~yt-dlp~~。默认 `true`，生成文件名前移除标题末尾 hashtag 文本。 |
+| `servers[].maxConcurrent` | 仅 ~~yt-dlp~~。最大并发 ~~yt-dlp~~ 进程数，默认 `10`。 |
+| `servers[].noPlaylist` | 仅 ~~yt-dlp~~。默认 `true`，避免单个 URL 自动展开成播放列表下载。 |
+| `servers[].restrictFilenames` | 仅 ~~yt-dlp~~。让 ~~yt-dlp~~ 使用更保守的文件名字符。 |
+| `servers[].extraArgs` | 仅 ~~yt-dlp~~。高级参数数组。Agent 使用 spawn 参数数组传递，不使用 shell 拼接。受 QiuyuRemote 控制的 `--output`、`--format`、`--cookies`、`--proxy`、`--paths` 会在这里被忽略，以保持任务行为可预测。 |
 
 ## 常用命令
 
@@ -595,7 +599,7 @@ curl http://127.0.0.1:8765/v1/state
 curl http://127.0.0.1:8765/v1/diagnostics
 ```
 
-同时查看终端或 systemd 日志。Agent 会输出 qBittorrent、Transmission、aria2、yt-dlp、配对、Relay 和 APNs 投递摘要。
+同时查看终端或 systemd 日志。Agent 会输出 qBittorrent、Transmission、aria2、~~yt-dlp~~、配对、Relay 和 APNs 投递摘要。
 
 ### 配对码已经使用
 

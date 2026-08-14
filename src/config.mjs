@@ -49,6 +49,10 @@ export function loadConfig() {
         process.env.QIUYU_AGENT_POLL_INTERVAL_SECONDS ?? fileConfig.monitor?.pollIntervalSeconds,
         30
       ),
+      serviceStatusNoticeEnabled: boolean(
+        process.env.QIUYU_AGENT_SERVICE_STATUS_NOTICE_ENABLED ?? fileConfig.monitor?.serviceStatusNoticeEnabled,
+        true
+      ),
       inactiveDownloadNoticeEnabled: boolean(
         process.env.QIUYU_AGENT_INACTIVE_DOWNLOAD_NOTICE_ENABLED ?? fileConfig.monitor?.inactiveDownloadNoticeEnabled,
         true
